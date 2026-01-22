@@ -25,7 +25,17 @@ A lightweight Java web app that powers a karaoke lobby + room experience. It’s
 
 3. Drop the generated `target/kara-cafe.war` into your servlet container (e.g., Tomcat) or run it with your preferred Java EE server.
 
+## Unit testing and coverage
+1. Run tests with the Clover instrumentation and coverage report:
+
+   ```bash
+   mvn clean verify
+   ```
+
+2. The OpenClover plugin instruments the code and generates an HTML coverage report under `target/site/clover/index.html` once `verify` completes.
+3. You can open that report locally to inspect line/branch coverage for your unit tests.
+
 ## Accessing the app
 - Lobby (login + room management): `http://<host>:<port>/kara-cafe/`
-- Room detail (admin or invite link): `http://<host>:<port>/kara-cafe/karaoke-room/room.html?id=<roomId>&token=<token>`
+- Room detail (admin or invite link): `http://<host>:<port>/karaoke-room/room.html?id=<roomId>&token=<token>`
 - API base: `/kara-cafe/api/rooms/*`
