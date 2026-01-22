@@ -1,0 +1,9 @@
+services:
+  kara-cafe-app:
+    image: quay.io/wildfly/wildfly:latest
+    container_name: wildfly
+    hostname: wildfly
+    ports:
+      - "8080:8080"
+    volumes:
+      - .\target\kara-cafe.war:/opt/jboss/wildfly/standalone/deployments/kara-cafe.war:ro

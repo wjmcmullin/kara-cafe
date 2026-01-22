@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Karaoke Room Lobby</title>
+    <base href="/kara-cafe/">
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <meta name="description" content="Karaoke room lobby with room management.">
+</head>
+
+<body class="room">
+    <nav><a class="link" href="/">← Back to login</a></nav>
+    <section class="room-card">
+        <h1>Karaoke Room Lobby</h1>
+        <p class="subtext">Admins and Super Admins can create, delete, and invite guests from here.</p>
+
+        <form id="createRoomForm" class="room-form hidden">
+            <input id="roomNameInput" name="roomName" type="text" placeholder="Room name" required />
+            <button id="createRoomButton" class="button" type="submit">Create room</button>
+        </form>
+        <p id="createMessage" class="subtext"></p>
+
+        <div id="roomList" class="room-grid"></div>
+        <p id="status" class="subtext">Loading rooms…</p>
+    </section>
+    <script src="assets/js/rooms.js"></script>
+</body>
+
+</html>

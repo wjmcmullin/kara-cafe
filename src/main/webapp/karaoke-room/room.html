@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Karaoke Room</title>
+    <base href="/kara-cafe/" />
+    <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+
+<body class="room">
+    <nav><a class="link" href="/kara-cafe/">← Back to login</a></nav>
+    <section class="room-card" id="roomCard">
+        <h1 id="roomName">Loading…</h1>
+        <p id="roomOwner" class="subtext"></p>
+        <p><strong>Occupants:</strong> <span id="roomOccupants">0</span></p>
+        <p><strong>Uptime:</strong> <span id="roomUptime">00s</span></p>
+        <div class="invite-section">
+            <p class="subtext"><strong>Song Requests</strong></p>
+            <ul id="songList" class="invite-list"></ul>
+        </div>
+        <form id="songForm" class="room-form">
+            <input name="song" type="text" placeholder="Song to request" required />
+            <button class="button" type="submit">Request song</button>
+        </form>
+        <p id="roomStatus" class="subtext"></p>
+    </section>
+    <script src="assets/js/room.js"></script>
+</body>
+
+</html>
