@@ -1,18 +1,24 @@
 package com.app.karaoke.model;
 
+import java.util.Map;
 import java.util.Objects;
 
 public class AppUser {
 
     private final String username;
     private final Role role;
-    private final String password;
-    private String roomAccess; // roomId this user is allowed to enter (temp users only)
+    private final boolean superAdmin;
+    private String password;
 
     public AppUser(String username, Role role, String password) {
-        this.username = Objects.requireNonNull(username);
-        this.role = Objects.requireNonNull(role);
-        this.password = Objects.requireNonNull(password);
+        this(username, role, password, role == Role.SUPER_ADMIN);
+    }
+
+    public AppUser(String username, Role role, String password, boolean superAdmin) {
+        this.username = username;
+        this.role = role;
+        this.password = password;
+        this.superAdmin = superAdmin;
     }
 
     public String getUsername() {
@@ -23,23 +29,27 @@ public class AppUser {
         return role;
     }
 
-    public boolean checkPassword(String candidate) {
-        return password.equals(candidate);
-    }
-
-    public boolean isAdmin() {
-        return role.atLeast(Role.ADMIN);
-    }
-
     public boolean isSuperAdmin() {
-        return role == Role.SUPER_ADMIN;
+        return superAdmin;
     }
 
-    public String getRoomAccess() {
-        return roomAccess;
+    public String getPassword() {
+        return password;
     }
 
-    public void setRoomAccess(String roomAccess) {
-        this.roomAccess = roomAccess;
+    public boolean checkPassword(String candidate) {
+        return Objects.equals(this.password, candidate);
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public Map<String, Object> toPayload() {
+        return Map.of(
+                "username", username,
+                "role", role.name(),
+                "superAdmin", superAdmin
+        );
     }
 }

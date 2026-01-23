@@ -5,5 +5,32 @@ services:
     hostname: wildfly
     ports:
       - "8080:8080"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/kara
+      DB_USER: postgres
+      DB_PASSWORD: root
     volumes:
       - .\target\kara-cafe.war:/opt/jboss/wildfly/standalone/deployments/kara-cafe.war:ro
+    networks:
+      - wildfly_server_net
+  postgres:
+    image: postgres:18-alpine
+    container_name: kara-postgres
+    hostname: postgres
+    environment:
+      POSTGRES_DB: kara
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5432:5432"
+    volumes:
+      - .\db:/var/lib/postgresql
+      - .\db\storage:/app/server/storage
+    networks:
+      - wildfly_server_net
+networks:
+  wildfly_server_net:
+    name: wildfly_server_net
+volumes:
+  postgres_db:
+    name: kara_postgres_db

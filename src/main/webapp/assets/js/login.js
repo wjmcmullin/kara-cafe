@@ -1,28 +1,38 @@
 document.addEventListener("DOMContentLoaded", () => {
+    const token = localStorage.getItem("karaToken");
+    if (token) {
+        window.location.replace("karaoke-room/");
+        return;
+    }
+
     const form = document.getElementById("loginForm");
     const feedback = document.getElementById("feedback");
 
-    form.addEventListener("submit", async (event) => {
+    form?.addEventListener("submit", async (event) => {
         event.preventDefault();
         feedback.textContent = "";
 
         const formData = new URLSearchParams(new FormData(form));
-        const response = await fetch("/kara-cafe/api/auth/login", {
-            method: "POST",
-            headers: {
-                "Accept": "application/json"
-            },
-            body: formData
-        });
+        try {
+            const response = await fetch("/kara-cafe/api/auth/login", {
+                method: "POST",
+                headers: {
+                    Accept: "application/json"
+                },
+                body: formData
+            });
 
-        if (response.ok) {
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}));
+                feedback.textContent = data.error || "Login failed. Try again.";
+                return;
+            }
+
             const payload = await response.json();
-            const token = payload.token;
-            localStorage.setItem("karaToken", token);
+            localStorage.setItem("karaToken", payload.token);
             window.location.href = "karaoke-room/";
-        } else {
-            const errorPayload = await response.json().catch(() => ({ error: "Unable to log in" }));
-            feedback.textContent = errorPayload.error || "Login failed. Try again.";
+        } catch (error) {
+            feedback.textContent = "Unable to log in. Try again.";
         }
     });
 });

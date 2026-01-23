@@ -7,25 +7,58 @@ const createForm = document.getElementById("createRoomForm");
 const roomNameInput = document.getElementById("roomNameInput");
 const createMessage = document.getElementById("createMessage");
 
+const adminPanel = document.getElementById("adminPanel");
+const createAdminForm = document.getElementById("createAdminForm");
+const adminMessage = document.getElementById("adminMessage");
+
 let token = null;
 let currentUser = null;
 
 document.addEventListener("DOMContentLoaded", () => {
     token = localStorage.getItem("karaToken");
     if (!token) {
-        showStatus("Sign in to manage rooms.", true);
+        redirectToLogin();
         return;
     }
 
-    if (createForm) {
-        createForm.addEventListener("submit", handleCreateRoom);
-    }
+    document.getElementById("logoutButton")?.addEventListener("click", async () => {
+        await logout();
+    });
+
+    createForm?.addEventListener("submit", handleCreateRoom);
+    createAdminForm?.addEventListener("submit", handleCreateAdmin);
 
     roomList?.addEventListener("click", handleRoomClick);
     roomList?.addEventListener("submit", handleInviteForm);
 
-    loadRooms().catch((error) => showStatus(error.message, true));
+    loadRooms().catch((error) => {
+        if (error.message !== "Authentication required") {
+            showStatus(error.message, true);
+        }
+    });
 });
+
+async function logout() {
+    try {
+        await fetch(`${API_BASE}/auth/logout`, {
+            method: "DELETE",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: "application/json"
+            }
+        });
+    } catch (error) {
+        console.error("Logout failed", error);
+    } finally {
+        redirectToLogin();
+    }
+}
+
+function redirectToLogin() {
+    localStorage.removeItem("karaToken");
+    token = null;
+    window.location.replace("/kara-cafe/");
+}
 
 async function loadRooms() {
     const data = await fetchRooms();
@@ -41,6 +74,13 @@ async function loadRooms() {
         createForm.classList.toggle("hidden", !currentUser.isAdmin);
     }
 
+    if (adminPanel) {
+        adminPanel.classList.toggle("hidden", !currentUser.isSuperAdmin);
+        if (!currentUser.isSuperAdmin) {
+            createAdminForm?.classList.add("hidden");
+        }
+    }
+
     renderRooms(data.rooms || []);
 }
 
@@ -51,6 +91,8 @@ async function fetchRooms() {
             Accept: "application/json"
         }
     });
+
+    ensureAuth(response);
 
     if (!response.ok) {
         throw new Error("Unable to load rooms.");
@@ -75,7 +117,7 @@ async function handleCreateRoom(event) {
     displayCreateMessage("Creating room…");
 
     try {
-        await fetch(`${API_BASE}/rooms/create`, {
+        const response = await fetch(`${API_BASE}/rooms/create`, {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -84,11 +126,54 @@ async function handleCreateRoom(event) {
             body: new URLSearchParams({ roomName })
         });
 
+        ensureAuth(response);
+
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.error || "Unable to create room.");
+        }
+
         displayCreateMessage("Room created.");
         roomNameInput.value = "";
         await loadRooms();
     } catch (error) {
         displayCreateMessage(error.message, true);
+    }
+}
+
+async function handleCreateAdmin(event) {
+    event.preventDefault();
+    if (!currentUser?.isSuperAdmin) {
+        displayAdminMessage("Only Super Admins can create admin users.", true);
+        return;
+    }
+
+    const formData = new URLSearchParams(new FormData(event.target));
+
+    displayAdminMessage("Creating admin…");
+
+    try {
+        const response = await fetch(`${API_BASE}/users/admin`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: formData
+        });
+
+        ensureAuth(response);
+
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            displayAdminMessage(payload.error || "Unable to create admin.", true);
+            return;
+        }
+
+        displayAdminMessage(`Admin ${payload.username} created.`);
+        event.target.reset();
+    } catch (error) {
+        displayAdminMessage(error.message, true);
     }
 }
 
@@ -135,7 +220,7 @@ function renderRoomCard(room) {
         </div>
         <div class="room-actions">
           <button class="button enter-room" data-room-id="${room.id}">Enter room</button>
-          ${canManage ? `<button class="tiny-button delete-room" data-room-id="${room.id}">Delete</button>` : ""}
+          ${canManage ? `<button class="button delete-room" data-room-id="${room.id}">Delete</button>` : ""}
         </div>
       </header>
       <div class="room-meta">
@@ -174,13 +259,20 @@ async function handleRoomClick(event) {
         }
 
         try {
-            await fetch(`${API_BASE}/rooms/${roomId}`, {
+            const response = await fetch(`${API_BASE}/rooms/${roomId}`, {
                 method: "DELETE",
                 headers: {
                     Authorization: `Bearer ${token}`,
                     Accept: "application/json"
                 }
             });
+
+            ensureAuth(response);
+
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}));
+                throw new Error(data.error || "Unable to delete room.");
+            }
 
             showStatus("Room deleted.");
             await loadRooms();
@@ -216,6 +308,8 @@ async function handleInviteForm(event) {
             body: new URLSearchParams({ guest })
         });
 
+        ensureAuth(response);
+
         if (!response.ok) {
             const data = await response.json().catch(() => ({}));
             throw new Error(data.error || "Unable to invite");
@@ -246,6 +340,21 @@ function displayCreateMessage(message, isError = false) {
     }
     createMessage.textContent = message;
     createMessage.classList.toggle("warning", Boolean(isError));
+}
+
+function displayAdminMessage(message, isError = false) {
+    if (!adminMessage) {
+        return;
+    }
+    adminMessage.textContent = message;
+    adminMessage.classList.toggle("warning", Boolean(isError));
+}
+
+function ensureAuth(response) {
+    if (response.status === 401 || response.status === 403) {
+        redirectToLogin();
+        throw new Error("Authentication required");
+    }
 }
 
 function escapeHtml(value) {

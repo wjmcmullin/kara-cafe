@@ -29,10 +29,10 @@ A lightweight Java web app that powers a karaoke lobby + room experience. It’s
 1. Run tests with the Clover instrumentation and coverage report:
 
    ```bash
-   mvn clean verify
+   mvn clean clover:test-instrument test clover:aggregate clover:clover package
    ```
 
-2. The OpenClover plugin instruments the code and generates an HTML coverage report under `target/site/clover/index.html` once `verify` completes.
+2. The OpenClover plugin instruments the code and generates an HTML coverage report under `target/site/clover/index.html` once the build completes.
 3. You can open that report locally to inspect line/branch coverage for your unit tests.
 
 ## Accessing the app

@@ -1,57 +1,93 @@
 package com.app.karaoke.service;
 
-import java.util.Map;
+import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+
+import org.mindrot.jbcrypt.BCrypt;
 
 import com.app.karaoke.model.AppUser;
 import com.app.karaoke.model.Role;
+import com.app.karaoke.persistence.UserDao;
 
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import jakarta.inject.Inject;
 
 @ApplicationScoped
 public class UserService {
 
-    private static final Logger LOG = LogManager.getLogger(UserService.class);
+    private UserDao userDao;
 
-    private final Map<String, AppUser> users = new ConcurrentHashMap<>();
+    private final String superAdminUsername;
+    private final String superAdminPassword;
 
     public UserService() {
-        users.put("admin", new AppUser("admin", Role.SUPER_ADMIN, "admin"));
-        users.put("admin-user", new AppUser("admin-user", Role.ADMIN, "admin"));
-        users.put("guest", new AppUser("guest", Role.USER, "guest"));
+        this.superAdminUsername = pick("kara.super-admin.username", "KARA_SUPER_ADMIN_USERNAME", "super-admin");
+        this.superAdminPassword = pick("kara.super-admin.password", "KARA_SUPER_ADMIN_PASSWORD", "admin");
     }
 
-    public Optional<AppUser> findByUsername(String username) {
-        LOG.debug("findByUsername {}", username);
-        return Optional.ofNullable(users.get(username));
+    @Inject
+    public void setUserDao(UserDao userDao) {
+        this.userDao = userDao;
+    }
+
+    @PostConstruct
+    void init() {
+        if (userDao.find(superAdminUsername).isEmpty()) {
+            AppUser superUser = new AppUser(
+                    superAdminUsername,
+                    Role.SUPER_ADMIN,
+                    hash(superAdminPassword),
+                    true
+            );
+            userDao.insert(superUser);
+        }
     }
 
     public Optional<AppUser> authenticate(String username, String password) {
-        LOG.debug("authenticate {}", username);
-        return findByUsername(username)
-                .filter(user -> {
-                    boolean match = user.checkPassword(password);
-                    if (match) {
-                        LOG.info("User {} authenticated", username);
-                    } else {
-                        LOG.warn("Failed authentication for {}", username);
-                    }
-                    return match;
-                });
+        return userDao.find(username)
+                .filter(user -> BCrypt.checkpw(password, user.getPassword()));
     }
 
-    public AppUser createTemporaryUser(String roomId) {
-        LOG.debug("createTemporaryUser for room {}", roomId);
-        String username = "guest-" + UUID.randomUUID().toString().substring(0, 8);
-        AppUser guest = new AppUser(username, Role.USER, UUID.randomUUID().toString());
-        guest.setRoomAccess(roomId);
-        users.put(username, guest);
-        LOG.info("Temporary user {} created for room {}", username, roomId);
-        return guest;
+    public Optional<AppUser> createAdmin(String username, String password) {
+        if (username == null || username.isBlank() || password == null || password.isBlank()) {
+            return Optional.empty();
+        }
+        if (userDao.find(username).isPresent()) {
+            return Optional.empty();
+        }
+        AppUser user = new AppUser(username, Role.ADMIN, hash(password), false);
+        return userDao.insert(user) ? Optional.of(user) : Optional.empty();
+    }
+
+    public List<AppUser> listUsers() {
+        return userDao.listAll();
+    }
+
+    public boolean changePassword(String username, String newPassword) {
+        if (newPassword == null || newPassword.isBlank()) {
+            return false;
+        }
+        return userDao.updatePassword(username, hash(newPassword));
+    }
+
+    public boolean deleteUser(String username) {
+        return userDao.find(username)
+                .filter(user -> !user.isSuperAdmin())
+                .map(user -> userDao.delete(username))
+                .orElse(false);
+    }
+
+    private static String hash(String password) {
+        return BCrypt.hashpw(password, BCrypt.gensalt());
+    }
+
+    private static String pick(String prop, String env, String fallback) {
+        String value = System.getProperty(prop);
+        if (value != null && !value.isBlank()) {
+            return value;
+        }
+        value = System.getenv(env);
+        return (value != null && !value.isBlank()) ? value : fallback;
     }
 }

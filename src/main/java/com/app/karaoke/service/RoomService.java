@@ -8,6 +8,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.app.karaoke.model.AppUser;
 import com.app.karaoke.model.Role;
 import com.app.karaoke.model.Room;
@@ -15,9 +18,6 @@ import com.app.karaoke.model.RoomDTO;
 import com.app.karaoke.model.RoomSongRequest;
 
 import jakarta.enterprise.context.ApplicationScoped;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 @ApplicationScoped
 public class RoomService {
@@ -104,5 +104,10 @@ public class RoomService {
         }
         LOG.info("Room {} deleted", roomId);
         return Optional.of(new RoomDTO(removed));
+    }
+
+    public boolean hasRoomOwnedBy(String owner) {
+        LOG.debug("hasRoomOwnedBy {}", owner);
+        return rooms.values().stream().anyMatch(room -> room.getOwner().equals(owner));
     }
 }
