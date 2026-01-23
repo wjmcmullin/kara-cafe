@@ -5,12 +5,12 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.app.karaoke.model.AppUser;
 
 import jakarta.enterprise.context.ApplicationScoped;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 @ApplicationScoped
 public class TokenService {
@@ -42,6 +42,17 @@ public class TokenService {
             LOG.warn("Token {} not found", token);
         }
         return info;
+    }
+
+    public boolean revokeToken(String token) {
+        LOG.debug("revokeToken {}", token);
+        TokenInfo removed = tokens.remove(token);
+        if (removed != null) {
+            LOG.info("Token revoked for {}", removed.getUser().getUsername());
+            return true;
+        }
+        LOG.warn("Attempted to revoke unknown token {}", token);
+        return false;
     }
 
     public static final class TokenInfo {

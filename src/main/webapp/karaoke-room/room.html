@@ -9,23 +9,49 @@
 </head>
 
 <body class="room">
-    <nav><a class="link" href="/kara-cafe/karaoke-room/">← Back to login</a></nav>
-    <section class="room-card" id="roomCard">
-        <h1 id="roomName">Loading…</h1>
-        <p id="roomOwner" class="subtext"></p>
-        <p><strong>Occupants:</strong> <span id="roomOccupants">0</span></p>
-        <p><strong>Uptime:</strong> <span id="roomUptime">00s</span></p>
-        <div class="invite-section">
-            <p class="subtext"><strong>Song Requests</strong></p>
-            <ul id="songList" class="invite-list"></ul>
-        </div>
-        <form id="songForm" class="room-form">
-            <input name="song" type="text" placeholder="Song to request" required />
-            <button class="button" type="submit">Request song</button>
-        </form>
-        <p id="roomStatus" class="subtext"></p>
-    </section>
+    <div class="room-page">
+        <nav class="room-nav">
+            <a class="link" href="/kara-cafe/karaoke-room/">← Back to Karaoke Rooms</a>
+            <button id="roomLogoutButton" class="link-button logout-button" type="button">Log out</button>
+        </nav>
+
+        <section class="room-card" id="roomCard">
+            <h1 id="roomName">Loading…</h1>
+            <p id="roomOwner" class="subtext"></p>
+            <p><strong>Occupants:</strong> <span id="roomOccupants">0</span></p>
+            <p><strong>Uptime:</strong> <span id="roomUptime">00s</span></p>
+            <div class="invite-section">
+                <p class="subtext"><strong>Song Requests</strong></p>
+                <ul id="songList" class="invite-list"></ul>
+            </div>
+            <form id="songForm" class="room-form">
+                <input name="song" type="text" placeholder="Song to request" required />
+                <button class="button" type="submit">Request song</button>
+            </form>
+            <p id="roomStatus" class="subtext"></p>
+        </section>
+    </div>
+
     <script src="assets/js/room.js"></script>
+    <script>
+        document.getElementById("roomLogoutButton")?.addEventListener("click", async () => {
+            const token = localStorage.getItem("karaToken");
+            try {
+                await fetch("/kara-cafe/api/auth/logout", {
+                    method: "DELETE",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        Accept: "application/json"
+                    }
+                });
+            } catch (error) {
+                console.error("Logout failed", error);
+            } finally {
+                localStorage.removeItem("karaToken");
+                window.location.replace("/kara-cafe/");
+            }
+        });
+    </script>
 </body>
 
 </html>

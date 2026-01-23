@@ -80,13 +80,13 @@
         <dependency>
             <groupId>net.bytebuddy</groupId>
             <artifactId>byte-buddy</artifactId>
-            <version>1.15.5</version>
+            <version>1.18.4</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>net.bytebuddy</groupId>
             <artifactId>byte-buddy-agent</artifactId>
-            <version>1.15.5</version>
+            <version>1.18.4</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -101,6 +101,41 @@
             <version>3.1.11</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.openclover</groupId>
+            <artifactId>clover-runtime</artifactId>
+            <version>4.5.2</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Source: https://mvnrepository.com/artifact/com.zaxxer/HikariCP -->
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>7.0.2</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mindrot</groupId>
+            <artifactId>jbcrypt</artifactId>
+            <version>0.4</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>2.4.240</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.6.0</version>
+        </dependency>
+
+
     </dependencies>
 
     <build>
@@ -140,15 +175,9 @@
                 <configuration>
                     <instrumentation>true</instrumentation>
                     <skip>false</skip>
+                    <generatePdf>true</generatePdf>
                 </configuration>
                 <executions>
-                    <execution>
-                        <id>clover-instrument</id>
-                        <phase>initialize</phase>
-                        <goals>
-                            <goal>setup</goal>
-                        </goals>
-                    </execution>
                     <execution>
                         <id>clover-report</id>
                         <phase>verify</phase>

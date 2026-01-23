@@ -111,7 +111,7 @@ class RoomControllerTest {
 
         Response response = controller.deleteRoom(room.getId());
 
-        assertThat(response.getStatus()).isEqualTo(Response.Status.OK.getStatusCode());
+        assertThat(response.getStatus()).isEqualTo(Response.Status.NO_CONTENT.getStatusCode());
         assertThat(roomService.getRoom(room.getId())).isEmpty();
     }
 }

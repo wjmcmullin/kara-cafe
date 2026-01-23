@@ -7,15 +7,20 @@ import com.app.karaoke.service.UserService;
 
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.FormParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 @Path("/auth")
 public class AuthController {
+
+    private static final String BEARER = "Bearer ";
 
     @Inject
     private UserService userService;
@@ -42,5 +47,20 @@ public class AuthController {
                 })
                 .orElse(Response.status(Response.Status.UNAUTHORIZED)
                         .entity(Map.of("error", "invalid credentials")).build());
+    }
+
+    @DELETE
+    @Path("/logout")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response logout(@Context HttpHeaders headers) {
+        String authorization = headers.getHeaderString(HttpHeaders.AUTHORIZATION);
+        if (authorization == null || !authorization.startsWith(BEARER)) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("error", "Authentication required")).build();
+        }
+
+        String token = authorization.substring(BEARER.length()).trim();
+        tokenService.revokeToken(token);
+        return Response.noContent().build();
     }
 }

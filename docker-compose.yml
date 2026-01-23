@@ -5,5 +5,16 @@ services:
     hostname: wildfly
     ports:
       - "8080:8080"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/kara
+      DB_USER: postgres
+      DB_PASSWORD: root
     volumes:
       - .\target\kara-cafe.war:/opt/jboss/wildfly/standalone/deployments/kara-cafe.war:ro
+    networks:
+      - llm_server_net
+networks:
+  llm_server_net:
+    external: true
+    name: llm_server_net
+

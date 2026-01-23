@@ -10,20 +10,43 @@
 </head>
 
 <body class="room">
-    <nav><a class="link" href="/">← Back to login</a></nav>
-    <section class="room-card">
-        <h1>Karaoke Room Lobby</h1>
-        <p class="subtext">Admins and Super Admins can create, delete, and invite guests from here.</p>
+    <div class="room-page">
+        <nav class="room-nav">
+            <button id="logoutButton" class="link-button logout-button" type="button">Log out</button>
+        </nav>
 
-        <form id="createRoomForm" class="room-form hidden">
-            <input id="roomNameInput" name="roomName" type="text" placeholder="Room name" required />
-            <button id="createRoomButton" class="button" type="submit">Create room</button>
-        </form>
-        <p id="createMessage" class="subtext"></p>
+        <section class="room-card">
+            <div class="lobby-grid">
+                <aside id="adminPanel" class="admin-panel hidden">
+                    <h2>Create Admin User</h2>
+                    <p class="subtext">Super Admins can provision new Admin accounts.</p>
+                    <form id="createAdminForm" class="room-form">
+                        <input name="username" placeholder="Admin username" autocomplete="off" required />
+                        <input name="password" type="password" placeholder="Password" autocomplete="new-password"
+                            required />
+                        <button class="button" type="submit">Create admin</button>
+                    </form>
+                    <p id="adminMessage" class="subtext"></p>
+                </aside>
 
-        <div id="roomList" class="room-grid"></div>
-        <p id="status" class="subtext">Loading rooms…</p>
-    </section>
+                <article class="room-widget">
+                    <div class="room-main">
+                        <h1>Karaoke Room Lobby</h1>
+                        <p class="subtext">Admins and Super Admins can create, delete, and invite guests from here.</p>
+
+                        <form id="createRoomForm" class="room-form hidden">
+                            <input id="roomNameInput" name="roomName" type="text" placeholder="Room name" required />
+                            <button id="createRoomButton" class="button" type="submit">Create room</button>
+                        </form>
+                        <p id="createMessage" class="subtext"></p>
+
+                        <div id="roomList" class="room-grid"></div>
+                        <p id="status" class="subtext">Loading rooms…</p>
+                    </div>
+                </article>
+            </div>
+        </section>
+    </div>
     <script src="assets/js/rooms.js"></script>
 </body>
 

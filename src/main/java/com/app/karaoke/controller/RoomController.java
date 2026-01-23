@@ -1,12 +1,15 @@
 package com.app.karaoke.controller;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
 import com.app.karaoke.model.AppUser;
+import com.app.karaoke.model.Role;
 import com.app.karaoke.model.RoomDTO;
 import com.app.karaoke.security.Authorizer;
 import com.app.karaoke.security.RequestUserContext;
 import com.app.karaoke.service.RoomService;
-import com.app.karaoke.service.TokenService;
-import com.app.karaoke.service.UserService;
 
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
@@ -17,177 +20,160 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-
-import java.util.List;
-import java.util.Map;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 @Path("/rooms")
 @Produces(MediaType.APPLICATION_JSON)
 public class RoomController {
 
-    private static final Logger LOG = LogManager.getLogger(RoomController.class);
+    @Inject
+    private RoomService roomService;
 
     @Inject
-    RequestUserContext userContext;
+    private RequestUserContext requestUserContext;
 
     @Inject
-    RoomService roomService;
+    private Authorizer authorizer;
 
-    @Inject
-    Authorizer authorizer;
-
-    @Inject
-    UserService userService;
-
-    @Inject
-    TokenService tokenService;
+    @GET
+    @Path("/list")
+    public Response listRooms() {
+        AppUser currentUser = getCurrentUser();
+        List<RoomDTO> rooms = roomService.listRoomsFor(currentUser.getRole(), currentUser.getUsername());
+        return Response.ok(Map.of(
+                "currentUser", toPayload(currentUser),
+                "rooms", rooms
+        )).build();
+    }
 
     @POST
     @Path("/create")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     public Response createRoom(@FormParam("roomName") String roomName) {
-        LOG.debug("createRoom called with roomName={}", roomName);
-        AppUser user = userContext.getCurrentUser();
-        if (user == null || !authorizer.canCreateRoom(user)) {
-            LOG.warn("Unauthorized room creation attempt");
-            return Response.status(Response.Status.FORBIDDEN).entity("Admins only").build();
+        AppUser currentUser = getCurrentUser();
+
+        if (!authorizer.canCreateRoom(currentUser)) {
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity(Map.of("error", "Only admins can create rooms")).build();
         }
 
-        String safeName = roomName == null || roomName.isBlank() ? "Unnamed Room" : roomName.trim();
-        RoomDTO created = roomService.createRoom(safeName, user.getUsername());
-        LOG.info("Room created {} by {}", safeName, user.getUsername());
-        return Response.ok(created).build();
-    }
-
-    @POST
-    @Path("/{roomId}/enter")
-    public Response enterRoom(@PathParam("roomId") String roomId) {
-        LOG.debug("enterRoom called for {}", roomId);
-        AppUser user = userContext.getCurrentUser();
-        if (user == null) {
-            LOG.warn("Unauthorized enter attempt for room {}", roomId);
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Authentication required").build();
+        if (roomName == null || roomName.isBlank()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Room name is required")).build();
         }
 
-        return roomService.enterRoom(roomId)
-                .map(Response::ok)
-                .orElseGet(() -> {
-                    LOG.warn("Room {} not found", roomId);
-                    return Response.status(Response.Status.NOT_FOUND).entity("Room not found");
-                })
-                .build();
-    }
-
-    @POST
-    @Path("/{roomId}/song-request")
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    public Response songRequest(@PathParam("roomId") String roomId,
-            @FormParam("song") String song) {
-        LOG.debug("songRequest in room {}: {}", roomId, song);
-        AppUser user = userContext.getCurrentUser();
-        if (user == null || !authorizer.canRequestSong(user)) {
-            LOG.warn("Song request denied for user {}", user);
-            return Response.status(Response.Status.FORBIDDEN).entity("Song requests require at least USER role").build();
+        if (currentUser.getRole() == Role.ADMIN && roomService.hasRoomOwnedBy(currentUser.getUsername())) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Admin users can only own one room at a time")).build();
         }
 
-        return roomService.addSongRequest(roomId, song, user)
-                .map(Response::ok)
-                .orElseGet(() -> {
-                    LOG.warn("Song request failed for room {}", roomId);
-                    return Response.status(Response.Status.BAD_REQUEST).entity("Song is required or room missing");
-                })
-                .build();
-    }
-
-    @POST
-    @Path("/{roomId}/invite")
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    public Response invite(@PathParam("roomId") String roomId,
-            @FormParam("guest") String guest) {
-        LOG.debug("invite called for room {} guest {}", roomId, guest);
-        AppUser user = userContext.getCurrentUser();
-        if (user == null) {
-            LOG.warn("Unauthorized invite attempt for room {}", roomId);
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Authentication required").build();
-        }
-
-        RoomDTO room = roomService.getRoom(roomId).orElse(null);
-        if (room == null) {
-            LOG.warn("Invite failed; room {} not found", roomId);
-            return Response.status(Response.Status.NOT_FOUND).entity("Room not found").build();
-        }
-
-        if (!authorizer.canModifyRoom(user, room.getOwner())) {
-            LOG.warn("User {} cannot invite for room {}", user.getUsername(), roomId);
-            return Response.status(Response.Status.FORBIDDEN).entity("Not permitted").build();
-        }
-
-        AppUser tempUser = userService.createTemporaryUser(roomId);
-        String token = tokenService.issueInviteToken(tempUser, roomId);
-        roomService.inviteGuest(roomId, guest);
-
-        Map<String, Object> inviteResponse = Map.of(
-                "roomId", roomId,
-                "guestName", tempUser.getUsername(),
-                "token", token,
-                "entryUrl", String.format("/kara-cafe/karaoke-room/room.html?id=%s&token=%s", roomId, token)
-        );
-
-        LOG.info("Invite issued for {} to room {} by {}", guest, roomId, user.getUsername());
-        return Response.ok(inviteResponse).build();
-    }
-
-    @GET
-    @Path("/list")
-    public Response listRooms() {
-        LOG.debug("listRooms called");
-        AppUser user = userContext.getCurrentUser();
-        if (user == null) {
-            LOG.warn("Unauthorized room list request");
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Authentication required").build();
-        }
-
-        List<RoomDTO> rooms = roomService.listRoomsFor(user.getRole(), user.getUsername());
-        LOG.info("Rooms listed for {}", user.getUsername());
-        Map<String, Object> payload = Map.of(
-                "rooms", rooms,
-                "currentUser", Map.of(
-                        "username", user.getUsername(),
-                        "role", user.getRole().name()
-                )
-        );
-
-        return Response.ok(payload).build();
+        RoomDTO room = roomService.createRoom(roomName.trim(), currentUser.getUsername());
+        return Response.ok(room).build();
     }
 
     @DELETE
     @Path("/{roomId}")
     public Response deleteRoom(@PathParam("roomId") String roomId) {
-        LOG.debug("deleteRoom called for {}", roomId);
-        AppUser user = userContext.getCurrentUser();
-        if (user == null) {
-            LOG.warn("Unauthorized delete attempt for {}", roomId);
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Authentication required").build();
+        AppUser currentUser = getCurrentUser();
+        Optional<RoomDTO> existing = roomService.getRoom(roomId);
+        if (existing.isEmpty()) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", "Room not found")).build();
         }
 
-        RoomDTO room = roomService.getRoom(roomId).orElse(null);
-        if (room == null) {
-            LOG.warn("Room {} not found for deletion", roomId);
-            return Response.status(Response.Status.NOT_FOUND).entity("Room not found").build();
-        }
-
-        if (!authorizer.canModifyRoom(user, room.getOwner())) {
-            LOG.warn("User {} forbidden from deleting {}", user.getUsername(), roomId);
-            return Response.status(Response.Status.FORBIDDEN).entity("Not permitted").build();
+        if (!authorizer.canModifyRoom(currentUser, existing.get().getOwner())) {
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity(Map.of("error", "Not allowed to delete this room")).build();
         }
 
         roomService.deleteRoom(roomId);
-        LOG.info("Room {} deleted by {}", roomId, user.getUsername());
-        return Response.ok(Map.of("status", "deleted")).build();
+        return Response.noContent().build();
     }
+
+    @POST
+    @Path("/{roomId}/invite")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    public Response inviteGuest(@PathParam("roomId") String roomId, @FormParam("guest") String guest) {
+        AppUser currentUser = getCurrentUser();
+        Optional<RoomDTO> existing = roomService.getRoom(roomId);
+
+        if (existing.isEmpty()) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", "Room not found")).build();
+        }
+
+        if (!authorizer.canModifyRoom(currentUser, existing.get().getOwner())) {
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity(Map.of("error", "Not allowed to invite for this room")).build();
+        }
+
+        if (guest == null || guest.isBlank()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Guest username is required")).build();
+        }
+
+        Optional<RoomDTO> updated = roomService.inviteGuest(roomId, guest.trim());
+        if (updated.isEmpty()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Unable to invite guest")).build();
+        }
+
+        String entryUrl = String.format("/kara-cafe/karaoke-room/room.html?id=%s", roomId);
+        return Response.ok(Map.of("entryUrl", entryUrl)).build();
+    }
+
+    @POST
+    @Path("/{roomId}/enter")
+    public Response enterRoom(@PathParam("roomId") String roomId) {
+        getCurrentUser(); // ensure authentication
+        Optional<RoomDTO> room = roomService.enterRoom(roomId);
+        if (room.isEmpty()) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", "Room not found")).build();
+        }
+        return Response.ok(room.get()).build();
+    }
+
+    @POST
+    @Path("/{roomId}/song-request")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    public Response requestSong(@PathParam("roomId") String roomId, @FormParam("song") String song) {
+        AppUser currentUser = getCurrentUser();
+
+        if (!authorizer.canRequestSong(currentUser)) {
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity(Map.of("error", "User cannot request songs")).build();
+        }
+
+        Optional<RoomDTO> room = roomService.addSongRequest(roomId, song, currentUser);
+        if (room.isEmpty()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Unable to request song")).build();
+        }
+
+        return Response.ok(room.get()).build();
+    }
+
+    private AppUser getCurrentUser() {
+        AppUser user = requestUserContext.getCurrentUser();
+        if (user == null) {
+            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("error", "Authentication required")).build());
+        }
+        return user;
+    }
+
+    private Map<String, Object> toPayload(AppUser user) {
+        return Map.of(
+                "username", user.getUsername(),
+                "role", user.getRole().name()
+        );
+    }
+
+    public Response invite(String roomId, String guest) {
+        return inviteGuest(roomId, guest);
+    }
+
 }
