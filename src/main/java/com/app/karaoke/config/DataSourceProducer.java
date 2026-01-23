@@ -1,14 +1,25 @@
 package com.app.karaoke.config;
 
+import javax.sql.DataSource;
+
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 
-import javax.sql.DataSource;
-
 @ApplicationScoped
 public class DataSourceProducer {
+
+    private final EnvProvider envProvider;
+
+    public DataSourceProducer() {
+        this(System::getenv);
+    }
+
+    DataSourceProducer(EnvProvider envProvider) {
+        this.envProvider = envProvider;
+    }
 
     @Produces
     @ApplicationScoped
@@ -23,10 +34,16 @@ public class DataSourceProducer {
     }
 
     private String requireEnv(String key) {
-        String value = System.getenv(key);
+        String value = envProvider.getEnv(key);
         if (value == null || value.isBlank()) {
             throw new IllegalStateException(key + " must be set");
         }
         return value;
+    }
+
+    @FunctionalInterface
+    interface EnvProvider {
+
+        String getEnv(String key);
     }
 }

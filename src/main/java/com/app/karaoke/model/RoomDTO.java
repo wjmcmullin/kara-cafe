@@ -23,6 +23,11 @@ public class RoomDTO {
         this.songRequests = room.getSongRequests();
     }
 
+    private RoomDTO buildRoomDto(String id, String name, String owner) {
+        Room room = new Room(id, name, owner);
+        return new RoomDTO(room);
+    }
+
     public String getId() {
         return id;
     }
