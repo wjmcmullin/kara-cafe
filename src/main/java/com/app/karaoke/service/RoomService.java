@@ -35,6 +35,11 @@ public class RoomService {
         return new RoomDTO(room);
     }
 
+    public boolean hasRoomOwnedBy(String owner) {
+        LOG.debug("hasRoomOwnedBy {}", owner);
+        return rooms.values().stream().anyMatch(room -> room.getOwner().equals(owner));
+    }
+
     public List<RoomDTO> listRoomsFor(Role role, String username) {
         LOG.debug("listRoomsFor called role={} username={}", role, username);
         Collection<Room> source = rooms.values();
@@ -50,12 +55,33 @@ public class RoomService {
     }
 
     public Optional<RoomDTO> enterRoom(String roomId) {
-        LOG.debug("enterRoom {}", roomId);
-        return Optional.ofNullable(rooms.get(roomId))
-                .map(room -> {
-                    room.incrementOccupants();
-                    return new RoomDTO(room);
-                });
+        return enterRoom(roomId, null);
+    }
+
+    public Optional<RoomDTO> enterRoom(String roomId, String username) {
+        LOG.debug("enterRoom {} user={}", roomId, username);
+        Room room = rooms.get(roomId);
+        if (room == null) {
+            LOG.warn("enterRoom missing room {}", roomId);
+            return Optional.empty();
+        }
+        room.enter(username);
+        return Optional.of(new RoomDTO(room));
+    }
+
+    public Optional<RoomDTO> leaveRoom(String roomId, String username) {
+        LOG.debug("leaveRoom {} user={}", roomId, username);
+        if (username == null || username.isBlank()) {
+            LOG.warn("leaveRoom invalid username");
+            return Optional.empty();
+        }
+        Room room = rooms.get(roomId);
+        if (room == null) {
+            LOG.warn("leaveRoom missing room {}", roomId);
+            return Optional.empty();
+        }
+        room.leave(username);
+        return Optional.of(new RoomDTO(room));
     }
 
     public Optional<RoomDTO> addSongRequest(String roomId, String song, AppUser requester) {
@@ -104,10 +130,5 @@ public class RoomService {
         }
         LOG.info("Room {} deleted", roomId);
         return Optional.of(new RoomDTO(removed));
-    }
-
-    public boolean hasRoomOwnedBy(String owner) {
-        LOG.debug("hasRoomOwnedBy {}", owner);
-        return rooms.values().stream().anyMatch(room -> room.getOwner().equals(owner));
     }
 }

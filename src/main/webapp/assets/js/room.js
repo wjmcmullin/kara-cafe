@@ -1,6 +1,8 @@
 document.addEventListener("DOMContentLoaded", () => {
+    console.log("Room page load initiated");
     const tokenFromQuery = new URLSearchParams(window.location.search).get("token");
     if (tokenFromQuery) {
+        console.log("Token captured from query");
         localStorage.setItem("karaToken", tokenFromQuery);
     }
 
@@ -8,34 +10,26 @@ document.addEventListener("DOMContentLoaded", () => {
     const roomId = new URLSearchParams(window.location.search).get("id");
 
     if (!token || !roomId) {
+        console.warn("Missing token or room id for room page");
         showStatus("Missing room ID or token.", true);
         return;
     }
 
+    setSearchLink(roomId, token);
+
     enterRoom(roomId, token)
-        .then(renderRoom)
-        .catch((error) => showStatus(error.message, true));
-
-    document.getElementById("songForm").addEventListener("submit", async (event) => {
-        event.preventDefault();
-        const song = event.target.song.value.trim();
-        if (!song) {
-            showStatus("Enter a song name.", true);
-            return;
-        }
-
-        try {
-            const room = await requestSong(roomId, song, token);
+        .then((room) => {
+            console.log("Room data received", room);
             renderRoom(room);
-            event.target.reset();
-            showStatus(`Requested "${song}".`);
-        } catch (error) {
+        })
+        .catch((error) => {
+            console.error("Failed to enter room", error);
             showStatus(error.message, true);
-        }
-    });
+        });
 });
 
 async function enterRoom(roomId, token) {
+    console.log(`Entering room ${roomId}`);
     const response = await fetch(`/kara-cafe/api/rooms/${roomId}/enter`, {
         method: "POST",
         headers: {
@@ -51,25 +45,8 @@ async function enterRoom(roomId, token) {
     return response.json();
 }
 
-async function requestSong(roomId, song, token) {
-    const response = await fetch(`/kara-cafe/api/rooms/${roomId}/song-request`, {
-        method: "POST",
-        headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/x-www-form-urlencoded"
-        },
-        body: new URLSearchParams({ song })
-    });
-
-    if (!response.ok) {
-        const data = await safeJson(response);
-        throw new Error(data.error || "Song request failed.");
-    }
-
-    return response.json();
-}
-
 function renderRoom(room) {
+    console.log("Rendering room state", room);
     document.getElementById("roomName").textContent = room.name;
     document.getElementById("roomOwner").textContent = `Owner: ${room.owner}`;
     document.getElementById("roomOccupants").textContent = room.occupants;
@@ -84,21 +61,25 @@ function renderRoom(room) {
                     `<li>${escapeHtml(entry.song)} <span class="subtext">(${escapeHtml(entry.requester)})</span></li>`
             )
             .join("")
-        : "<li class=\"subtext\">No song requests yet.</li>";
+        : '<li class="subtext">No song requests yet.</li>';
+}
+
+function setSearchLink(roomId, token) {
+    const link = document.getElementById("searchVideosLink");
+    if (link) {
+        const searchUrl = new URL("/kara-cafe/karaoke-room/search", window.location.origin);
+        searchUrl.searchParams.set("id", roomId);
+        searchUrl.searchParams.set("token", token);
+        link.href = searchUrl.toString();
+        console.log("Search link updated", link.href);
+    }
 }
 
 function showStatus(message, isError = false) {
     const status = document.getElementById("roomStatus");
     status.textContent = message;
     status.classList.toggle("warning", Boolean(isError));
-}
-
-async function safeJson(response) {
-    try {
-        return await response.json();
-    } catch {
-        return {};
-    }
+    console.log("Status message shown", { message, isError });
 }
 
 function escapeHtml(value) {

@@ -1,12 +1,14 @@
 package com.app.karaoke.controller;
 
-import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -43,14 +45,25 @@ class RoomControllerTest {
     private final AppUser adminUser = new AppUser("admin", Role.ADMIN, "pw");
     private final AppUser superAdminUser = new AppUser("super", Role.SUPER_ADMIN, "pw");
 
+    private Path originalMediaRoot;
+
     @BeforeEach
-    void setUp() throws NoSuchFieldException, IllegalAccessException {
+    void setUp() {
         MockitoAnnotations.openMocks(this);
         controller = new RoomController();
+
+        originalMediaRoot = RoomController.getMediaRoot();
 
         injectField("roomService", roomService);
         injectField("requestUserContext", requestUserContext);
         injectField("authorizer", authorizer);
+
+        when(requestUserContext.getCurrentUser()).thenReturn(adminUser);
+    }
+
+    @AfterEach
+    void restoreMediaRoot() {
+        RoomController.overrideMediaRoot(originalMediaRoot);
     }
 
     @Test
@@ -69,7 +82,6 @@ class RoomControllerTest {
 
     @Test
     void createRoomForbiddenIfNotAllowed() {
-        when(requestUserContext.getCurrentUser()).thenReturn(adminUser);
         when(authorizer.canCreateRoom(adminUser)).thenReturn(false);
 
         Response response = controller.createRoom("New");
@@ -81,7 +93,6 @@ class RoomControllerTest {
 
     @Test
     void createRoomValidatesNameAndSingleRoomLimit() {
-        when(requestUserContext.getCurrentUser()).thenReturn(adminUser);
         when(authorizer.canCreateRoom(adminUser)).thenReturn(true);
 
         Response blank = controller.createRoom(" ");
@@ -108,7 +119,6 @@ class RoomControllerTest {
 
     @Test
     void deleteRoomHandlesMissingRoom() {
-        when(requestUserContext.getCurrentUser()).thenReturn(superAdminUser);
         when(roomService.getRoom("missing")).thenReturn(Optional.empty());
 
         Response response = controller.deleteRoom("missing");
@@ -118,9 +128,8 @@ class RoomControllerTest {
     @Test
     void deleteRoomChecksPermissions() {
         RoomDTO dto = buildRoomDto("room", "Room", "owner");
-        when(requestUserContext.getCurrentUser()).thenReturn(superAdminUser);
         when(roomService.getRoom("room")).thenReturn(Optional.of(dto));
-        when(authorizer.canModifyRoom(superAdminUser, "owner")).thenReturn(false);
+        when(authorizer.canModifyRoom(adminUser, "owner")).thenReturn(false);
 
         Response response = controller.deleteRoom("room");
         assertThat(response.getStatus()).isEqualTo(Response.Status.FORBIDDEN.getStatusCode());
@@ -129,9 +138,8 @@ class RoomControllerTest {
     @Test
     void deleteRoomDeletesWhenAllowed() {
         RoomDTO dto = buildRoomDto("room", "Room", "owner");
-        when(requestUserContext.getCurrentUser()).thenReturn(superAdminUser);
         when(roomService.getRoom("room")).thenReturn(Optional.of(dto));
-        when(authorizer.canModifyRoom(superAdminUser, "owner")).thenReturn(true);
+        when(authorizer.canModifyRoom(adminUser, "owner")).thenReturn(true);
 
         Response response = controller.deleteRoom("room");
         assertThat(response.getStatus()).isEqualTo(Response.Status.NO_CONTENT.getStatusCode());
@@ -140,7 +148,6 @@ class RoomControllerTest {
 
     @Test
     void inviteGuestHandlesAllValidation() {
-        when(requestUserContext.getCurrentUser()).thenReturn(adminUser);
         when(roomService.getRoom("room")).thenReturn(Optional.empty());
         Response missing = controller.inviteGuest("room", "guest");
         assertThat(missing.getStatus()).isEqualTo(Response.Status.NOT_FOUND.getStatusCode());
@@ -158,7 +165,6 @@ class RoomControllerTest {
 
     @Test
     void inviteGuestHandlesInviteFailureAndSuccess() {
-        when(requestUserContext.getCurrentUser()).thenReturn(adminUser);
         RoomDTO dto = buildRoomDto("room", "Room", "owner");
         when(roomService.getRoom("room")).thenReturn(Optional.of(dto));
         when(authorizer.canModifyRoom(adminUser, "owner")).thenReturn(true);
@@ -170,26 +176,95 @@ class RoomControllerTest {
         when(roomService.inviteGuest("room", "guest")).thenReturn(Optional.of(dto));
         Response success = controller.inviteGuest("room", "guest");
         assertThat(success.getStatus()).isEqualTo(Response.Status.OK.getStatusCode());
-        assertThat(success.getEntity()).isEqualTo(Map.of("entryUrl", "/kara-cafe/karaoke-room/room.html?id=room"));
+        assertThat(success.getEntity()).isEqualTo(Map.of("entryUrl", "/kara-cafe/karaoke-room/room?id=room"));
     }
 
     @Test
     void enterRoomHandlesMissingAndSuccess() {
-        when(requestUserContext.getCurrentUser()).thenReturn(adminUser);
-        when(roomService.enterRoom("missing")).thenReturn(Optional.empty());
+        when(roomService.enterRoom("missing", "admin")).thenReturn(Optional.empty());
         Response missing = controller.enterRoom("missing");
         assertThat(missing.getStatus()).isEqualTo(Response.Status.NOT_FOUND.getStatusCode());
 
         RoomDTO dto = buildRoomDto("room", "Room", "owner");
-        when(roomService.enterRoom("room")).thenReturn(Optional.of(dto));
+        when(roomService.enterRoom("room", "admin")).thenReturn(Optional.of(dto));
         Response response = controller.enterRoom("room");
         assertThat(response.getStatus()).isEqualTo(Response.Status.OK.getStatusCode());
         assertThat(response.getEntity()).isEqualTo(dto);
     }
 
     @Test
+    void leaveRoomHandlesMissingAndSuccess() {
+        when(roomService.leaveRoom("missing", "admin")).thenReturn(Optional.empty());
+        Response missing = controller.leaveRoom("missing");
+        assertThat(missing.getStatus()).isEqualTo(Response.Status.NOT_FOUND.getStatusCode());
+
+        RoomDTO dto = buildRoomDto("room", "Room", "owner");
+        when(roomService.leaveRoom("room", "admin")).thenReturn(Optional.of(dto));
+        Response response = controller.leaveRoom("room");
+        assertThat(response.getStatus()).isEqualTo(Response.Status.OK.getStatusCode());
+        assertThat(response.getEntity()).isEqualTo(dto);
+    }
+
+    @Test
+    void searchRoomVideosListsAvailableEntries() throws Exception {
+        Path tempDir = Files.createTempDirectory("karaoke");
+        Path video = Files.createFile(tempDir.resolve("song.mp4"));
+        RoomController.overrideMediaRoot(tempDir);
+
+        RoomDTO dto = buildRoomDto("room", "Room", "owner");
+        when(roomService.getRoom("room")).thenReturn(Optional.of(dto));
+
+        Response response = controller.searchRoomVideos("room", tempDir.toString());
+
+        assertThat(response.getStatus()).isEqualTo(Response.Status.OK.getStatusCode());
+        Map<String, Object> entity = cast(response.getEntity());
+        assertThat(entity.get("directory")).isEqualTo(tempDir.toString());
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> entries = (List<Map<String, Object>>) entity.get("entries");
+        assertThat(entries).hasSize(1);
+        Map<String, Object> entry = entries.get(0);
+        assertThat(entry.get("name")).isEqualTo("song.mp4");
+        assertThat(entry.get("relativePath")).isEqualTo("song.mp4");
+        assertThat(entry.get("sizeBytes")).isEqualTo(Files.size(video));
+
+        Files.deleteIfExists(video);
+        Files.deleteIfExists(tempDir);
+    }
+
+    @Test
+    void searchRoomVideosReturnsServerErrorWhenListFails() throws Exception {
+        Path tempDir = Files.createTempDirectory("karaoke");
+        Path notAFile = Files.createFile(tempDir.resolve("notdir"));
+        RoomController.overrideMediaRoot(tempDir);
+
+        RoomDTO dto = buildRoomDto("room", "Room", "owner");
+        when(roomService.getRoom("room")).thenReturn(Optional.of(dto));
+
+        Response response = controller.searchRoomVideos("room", notAFile.toString());
+
+        assertThat(response.getStatus()).isEqualTo(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+
+        Files.deleteIfExists(notAFile);
+        Files.deleteIfExists(tempDir);
+    }
+
+    @Test
+    void getVideoDirectoryReturnsMappedRoot() throws Exception {
+        Path tempDir = Files.createTempDirectory("karaoke");
+        RoomController.overrideMediaRoot(tempDir);
+
+        Response response = controller.getVideoDirectory();
+
+        assertThat(response.getStatus()).isEqualTo(Response.Status.OK.getStatusCode());
+        Map<String, Object> entity = cast(response.getEntity());
+        assertThat(entity.get("directory")).isEqualTo(tempDir.toString());
+
+        Files.deleteIfExists(tempDir);
+    }
+
+    @Test
     void requestSongValidatesPermissionAndResult() {
-        when(requestUserContext.getCurrentUser()).thenReturn(adminUser);
         when(authorizer.canRequestSong(adminUser)).thenReturn(false);
         Response forbidden = controller.requestSong("room", "song");
         assertThat(forbidden.getStatus()).isEqualTo(Response.Status.FORBIDDEN.getStatusCode());
@@ -215,7 +290,6 @@ class RoomControllerTest {
 
     @Test
     void inviteDelegatesToInviteGuest() {
-        when(requestUserContext.getCurrentUser()).thenReturn(adminUser);
         RoomDTO dto = buildRoomDto("room", "Room", "owner");
         when(roomService.getRoom("room")).thenReturn(Optional.of(dto));
         when(authorizer.canModifyRoom(adminUser, "owner")).thenReturn(true);
@@ -234,9 +308,13 @@ class RoomControllerTest {
         return new RoomDTO(new Room(id, name, owner));
     }
 
-    private void injectField(String name, Object value) throws NoSuchFieldException, IllegalAccessException {
-        Field field = RoomController.class.getDeclaredField(name);
-        field.setAccessible(true);
-        field.set(controller, value);
+    private void injectField(String name, Object value) {
+        try {
+            var field = RoomController.class.getDeclaredField(name);
+            field.setAccessible(true);
+            field.set(controller, value);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -9,8 +9,10 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/kara
       DB_USER: postgres
       DB_PASSWORD: root
+      KARAOKE_VIDEO_DIR: /kara-cafe/videos
     volumes:
       - .\target\kara-cafe.war:/opt/jboss/wildfly/standalone/deployments/kara-cafe.war:ro
+      - .\videos:/kara-cafe/videos
     networks:
       - wildfly_server_net
   postgres:

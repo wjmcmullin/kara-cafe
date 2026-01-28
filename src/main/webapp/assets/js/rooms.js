@@ -243,7 +243,7 @@ async function handleRoomClick(event) {
     if (target.matches(".enter-room")) {
         const roomId = target.dataset.roomId;
         if (roomId) {
-            window.location.href = `karaoke-room/room.html?id=${roomId}`;
+            window.location.href = `/kara-cafe/karaoke-room/room?id=${roomId}`;
         }
         return;
     }

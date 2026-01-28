@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Search Karaoke Videos</title>
+    <base href="/kara-cafe/" />
+    <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+
+<body class="room">
+    <div class="room-page">
+        <nav class="room-nav">
+            <a id="backToRoomLink" class="link" href="#">← Back to Room</a>
+            <button id="searchLogoutButton" class="link-button logout-button" type="button">Log out</button>
+        </nav>
+
+        <section class="room-card">
+            <h1>Search for karaoke videos</h1>
+            <p class="subtext">
+                Karaoke videos are automatically loaded from the configured server directory.
+            </p>
+
+            <p class="subtext">
+                Directory: <span id="configuredDirectory">Loading…</span>
+            </p>
+
+            <div id="searchStatus" class="subtext"></div>
+
+            <div class="invite-section">
+                <p class="subtext"><strong>Available karaoke files</strong></p>
+                <ul id="videoResults" class="invite-list"></ul>
+            </div>
+        </section>
+    </div>
+
+    <script src="assets/js/search-room.js"></script>
+</body>
+
+</html>

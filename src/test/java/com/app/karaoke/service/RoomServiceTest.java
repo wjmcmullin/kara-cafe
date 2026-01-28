@@ -45,12 +45,31 @@ class RoomServiceTest {
     @Test
     void getRoomAndEnterWork() {
         RoomDTO dto = roomService.createRoom("Room A", "owner");
-        Optional<RoomDTO> fetched = roomService.getRoom(dto.getId());
-        assertThat(fetched).isPresent();
-
-        Optional<RoomDTO> entered = roomService.enterRoom(dto.getId());
+        Optional<RoomDTO> entered = roomService.enterRoom(dto.getId(), "user");
         assertThat(entered).isPresent();
         assertThat(entered.get().getOccupants()).isEqualTo(1);
+    }
+
+    @Test
+    void enterRoomTracksUniqueOccupants() {
+        RoomDTO dto = roomService.createRoom("Room", "owner");
+        roomService.enterRoom(dto.getId(), "foo");
+        roomService.enterRoom(dto.getId(), "foo");
+        assertThat(roomService.enterRoom(dto.getId(), "foo").get().getOccupants()).isEqualTo(1);
+
+        roomService.enterRoom(dto.getId(), "bar");
+        assertThat(roomService.getRoom(dto.getId()).get().getOccupants()).isEqualTo(2);
+    }
+
+    @Test
+    void leaveRoomDecreasesOccupants() {
+        RoomDTO dto = roomService.createRoom("Room", "owner");
+        roomService.enterRoom(dto.getId(), "foo");
+        roomService.enterRoom(dto.getId(), "bar");
+        Optional<RoomDTO> afterLeave = roomService.leaveRoom(dto.getId(), "foo");
+
+        assertThat(afterLeave).isPresent();
+        assertThat(afterLeave.get().getOccupants()).isEqualTo(1);
     }
 
     @Test

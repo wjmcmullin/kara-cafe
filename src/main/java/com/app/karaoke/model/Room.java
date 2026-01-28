@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class Room {
 
@@ -16,7 +15,7 @@ public class Room {
     private final String name;
     private final String owner;
     private final Instant createdAt;
-    private final AtomicInteger occupants;
+    private final Set<String> occupants = ConcurrentHashMap.newKeySet();
     private final Set<String> invitedUsers = ConcurrentHashMap.newKeySet();
     private final List<RoomSongRequest> songRequests = Collections.synchronizedList(new LinkedList<>());
 
@@ -25,7 +24,6 @@ public class Room {
         this.name = Objects.requireNonNull(name);
         this.owner = Objects.requireNonNull(owner);
         this.createdAt = Instant.now();
-        this.occupants = new AtomicInteger(0);
     }
 
     public String getId() {
@@ -44,12 +42,22 @@ public class Room {
         return createdAt;
     }
 
-    public int getOccupantCount() {
-        return occupants.get();
+    public synchronized int getOccupantCount() {
+        return occupants.size();
     }
 
-    public void incrementOccupants() {
-        occupants.incrementAndGet();
+    public boolean enter(String username) {
+        if (username == null || username.isBlank()) {
+            return false;
+        }
+        return occupants.add(username.trim());
+    }
+
+    public boolean leave(String username) {
+        if (username == null || username.isBlank()) {
+            return false;
+        }
+        return occupants.remove(username.trim());
     }
 
     public void invite(String username) {

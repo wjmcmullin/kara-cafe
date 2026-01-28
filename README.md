@@ -39,3 +39,18 @@ A lightweight Java web app that powers a karaoke lobby + room experience. It’s
 - Lobby (login + room management): `http://<host>:<port>/kara-cafe/`
 - Room detail (admin or invite link): `http://<host>:<port>/karaoke-room/room.html?id=<roomId>&token=<token>`
 - API base: `/kara-cafe/api/rooms/*`
+
+## Extensionless Room URLs
+- All browser navigation now uses clean paths (`/karaoke-room/room` and `/karaoke-room/search`) while the servlet forwards those requests to the existing HTML assets.
+- Clicking “Enter room” or “Search karaoke videos” keeps `.html` out of the visible address bar while keeping every existing page intact.
+
+## Karaoke Video Search
+- Added a dedicated search page that lists karaoke video files from a server directory.
+- Users can browse the configured directory, preview matches, and queue selected files through the existing `/song-request` endpoint.
+
+## Configurable Karaoke Directory
+- The controller now determines the media root from the `KARAOKE_VIDEO_DIR` environment variable (defaults to `/karaoke-videos` when unset).
+- The `/rooms/{id}/search` endpoint only exposes files from that base location for security; configure `KARAOKE_VIDEO_DIR` on the server to point to your actual video store.
+
+## Logout & Navigation
+- Logout redirects and playlist links continue to reuse the stored JWT token and `/karaoke-room` paths so the experience remains consistent.
