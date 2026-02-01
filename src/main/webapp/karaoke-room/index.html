@@ -22,8 +22,7 @@
                     <p class="subtext">Super Admins can provision new Admin accounts.</p>
                     <form id="createAdminForm" class="room-form">
                         <input name="username" placeholder="Admin username" autocomplete="off" required />
-                        <input name="password" type="password" placeholder="Password" autocomplete="new-password"
-                            required />
+                        <input name="password" type="password" placeholder="Password" autocomplete="new-password" required />
                         <button class="button" type="submit">Create admin</button>
                     </form>
                     <p id="adminMessage" class="subtext"></p>
@@ -36,7 +35,7 @@
 
                         <form id="createRoomForm" class="room-form hidden">
                             <input id="roomNameInput" name="roomName" type="text" placeholder="Room name" required />
-                            <button id="createRoomButton" class="button" type="submit">Create room</button>
+                            <button class="button" type="submit">Create room</button>
                         </form>
                         <p id="createMessage" class="subtext"></p>
 
@@ -46,7 +45,42 @@
                 </article>
             </div>
         </section>
+
+        <section id="superAdminListing" class="room-card hidden">
+            <h2>Super Admin: All Admin Users</h2>
+            <p class="subtext">Only Super Admins can view this list. It appears immediately after login.</p>
+            <div id="superAdminMessage" class="subtext"></div>
+            <div id="superAdminList" class="admin-list"></div>
+        </section>
     </div>
+
+    <template id="roomCardTemplate">
+        <article class="room-item" data-room-id="">
+            <header class="room-header">
+                <div>
+                    <h2 data-room-name></h2>
+                    <p class="subtext">Owner: <span data-room-owner></span></p>
+                </div>
+                <div class="room-actions">
+                    <button class="button enter-room" type="button">Enter room</button>
+                    <button class="button delete-room" type="button">Delete</button>
+                </div>
+            </header>
+            <div class="room-meta">
+                <p><strong>Occupants:</strong> <span data-room-occupants></span></p>
+                <p><strong>Uptime:</strong> <span data-room-uptime></span></p>
+            </div>
+            <form class="invite-form" data-room-id="">
+                <input name="guest" placeholder="Invite username" autocomplete="off" />
+                <button class="tiny-button" type="submit">Invite</button>
+            </form>
+            <div class="invite-section">
+                <p class="subtext"><strong>Song requests</strong></p>
+                <ul class="invite-list" data-invite-list></ul>
+            </div>
+        </article>
+    </template>
+
     <script src="assets/js/rooms.js"></script>
 </body>
 

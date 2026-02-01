@@ -1,5 +1,6 @@
 const API_BASE = "/kara-cafe/api";
 const adminRoles = new Set(["ADMIN", "SUPER_ADMIN"]);
+const ROOM_TEMPLATE_URL = "/kara-cafe/karaoke-room/rooms.html";
 
 const roomList = document.getElementById("roomList");
 const status = document.getElementById("status");
@@ -11,8 +12,13 @@ const adminPanel = document.getElementById("adminPanel");
 const createAdminForm = document.getElementById("createAdminForm");
 const adminMessage = document.getElementById("adminMessage");
 
+const superAdminListing = document.getElementById("superAdminListing");
+const superAdminList = document.getElementById("superAdminList");
+const superAdminMessage = document.getElementById("superAdminMessage");
+
 let token = null;
 let currentUser = null;
+let roomCardTemplate = null;
 
 document.addEventListener("DOMContentLoaded", () => {
     token = localStorage.getItem("karaToken");
@@ -27,16 +33,45 @@ document.addEventListener("DOMContentLoaded", () => {
 
     createForm?.addEventListener("submit", handleCreateRoom);
     createAdminForm?.addEventListener("submit", handleCreateAdmin);
+    superAdminList?.addEventListener("click", handleSuperAdminActions);
 
     roomList?.addEventListener("click", handleRoomClick);
     roomList?.addEventListener("submit", handleInviteForm);
 
-    loadRooms().catch((error) => {
+    initializePage();
+});
+
+async function initializePage() {
+    try {
+        await loadRoomTemplate();
+        await loadRooms();
+    } catch (error) {
         if (error.message !== "Authentication required") {
             showStatus(error.message, true);
         }
-    });
-});
+    }
+}
+
+async function loadRoomTemplate() {
+    if (roomCardTemplate) {
+        return;
+    }
+
+    const response = await fetch(ROOM_TEMPLATE_URL);
+    if (!response.ok) {
+        throw new Error("Unable to load room template.");
+    }
+
+    const text = await response.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(text, "text/html");
+    const template = doc.querySelector("#roomCardTemplate");
+    if (!template) {
+        throw new Error("Room template is missing.");
+    }
+
+    roomCardTemplate = template;
+}
 
 async function logout() {
     try {
@@ -70,6 +105,8 @@ async function loadRooms() {
     currentUser.isAdmin = adminRoles.has(currentUser.role);
     currentUser.isSuperAdmin = currentUser.role === "SUPER_ADMIN";
 
+    console.debug("loadRooms current user:", currentUser);
+
     if (createForm) {
         createForm.classList.toggle("hidden", !currentUser.isAdmin);
     }
@@ -81,6 +118,16 @@ async function loadRooms() {
         }
     }
 
+    if (superAdminListing) {
+        if (currentUser.isSuperAdmin) {
+            superAdminListing.classList.remove("hidden");
+            await loadAdmins();
+        } else {
+            superAdminListing.classList.add("hidden");
+        }
+    }
+
+    updateProfileLink();
     renderRooms(data.rooms || []);
 }
 
@@ -99,6 +146,54 @@ async function fetchRooms() {
     }
 
     return response.json();
+}
+
+function ensureProfileLink() {
+    let profileLink = document.getElementById("profileLink");
+    if (profileLink) {
+        return profileLink;
+    }
+
+    const nav = document.querySelector(".room-nav");
+    if (!nav) {
+        console.warn("room-nav not found, cannot insert profile link.");
+        return null;
+    }
+
+    profileLink = document.createElement("a");
+    profileLink.id = "profileLink";
+    profileLink.className = "link hidden";
+    profileLink.href = "#";
+    profileLink.textContent = "My profile";
+    nav.insertBefore(profileLink, nav.firstElementChild);
+    return profileLink;
+}
+
+function updateProfileLink() {
+    const profileLink = ensureProfileLink();
+    if (!profileLink) {
+        console.warn("Profile link anchor missing from DOM");
+        return;
+    }
+
+    profileLink.classList.add("hidden");
+
+    if (currentUser?.isSuperAdmin) {
+        profileLink.textContent = "Super Admin profile";
+        profileLink.href = "/kara-cafe/karaoke-room/super-admin-profile.html";
+        profileLink.classList.remove("hidden");
+    } else if (currentUser?.isAdmin) {
+        profileLink.textContent = "Admin profile";
+        profileLink.href = "/kara-cafe/karaoke-room/admin-profile.html";
+        profileLink.classList.remove("hidden");
+    }
+
+    console.debug(
+        "updateProfileLink role:",
+        currentUser?.role,
+        "visible:",
+        !profileLink.classList.contains("hidden")
+    );
 }
 
 async function handleCreateRoom(event) {
@@ -172,69 +267,241 @@ async function handleCreateAdmin(event) {
 
         displayAdminMessage(`Admin ${payload.username} created.`);
         event.target.reset();
+        await loadAdmins();
     } catch (error) {
         displayAdminMessage(error.message, true);
     }
 }
 
+async function loadAdmins() {
+    if (!superAdminList) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/admin/users`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: "application/json"
+            }
+        });
+
+        ensureAuth(response);
+
+        if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            throw new Error(payload.error || "Unable to load admin users.");
+        }
+
+        const admins = await response.json();
+        const filteredAdmins = Array.isArray(admins)
+            ? admins.filter((admin) => admin.role !== "SUPER_ADMIN")
+            : [];
+        renderAdminList(filteredAdmins);
+    } catch (error) {
+        showSuperAdminMessage(error.message, true);
+    }
+}
+
+function renderAdminList(admins) {
+    if (!superAdminList) {
+        return;
+    }
+
+    if (!admins.length) {
+        superAdminList.innerHTML = '<p class="subtext">No admins created yet.</p>';
+        showSuperAdminMessage("Create your first admin above.");
+        return;
+    }
+
+    superAdminList.innerHTML = admins
+        .map(
+            (admin) => `
+        <div class="admin-entry" data-admin="${escapeHtml(admin.username)}">
+          <span class="admin-name">${escapeHtml(admin.username)}</span>
+          <div class="admin-actions">
+            <form class="inline-form change-password-form" data-admin="${escapeHtml(admin.username)}">
+              <input name="password" type="password" placeholder="New password" autocomplete="new-password" required />
+              <button class="tiny-button" type="submit">Change password</button>
+            </form>
+            <button class="button delete-admin" type="button" data-admin="${escapeHtml(admin.username)}">Delete</button>
+          </div>
+        </div>`
+        )
+        .join("");
+    showSuperAdminMessage(`${admins.length} admin(s) found.`);
+}
+
+async function handleSuperAdminActions(event) {
+    const target = event.target;
+
+    if (target.matches(".delete-admin")) {
+        const username = target.dataset.admin;
+        if (!username) {
+            return;
+        }
+
+        if (!confirm(`Delete admin ${username}? This cannot be undone.`)) {
+            return;
+        }
+
+        await deleteAdmin(username);
+        return;
+    }
+
+    const form = target.closest(".change-password-form");
+    if (form && form.dataset.admin) {
+        event.preventDefault();
+        const username = form.dataset.admin;
+        const password = form.password?.value?.trim();
+        if (!password) {
+            showSuperAdminMessage("Password is required to update.", true);
+            return;
+        }
+        await changeAdminPassword(username, password);
+    }
+}
+
+async function changeAdminPassword(username, password) {
+    try {
+        const response = await fetch(`${API_BASE}/admin/users/${encodeURIComponent(username)}/password`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: new URLSearchParams({ password })
+        });
+
+        ensureAuth(response);
+
+        if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            throw new Error(payload.error || "Unable to change password.");
+        }
+
+        showSuperAdminMessage(`Password updated for ${username}.`);
+        await loadAdmins();
+    } catch (error) {
+        showSuperAdminMessage(error.message, true);
+    }
+}
+
+async function deleteAdmin(username) {
+    try {
+        const response = await fetch(`${API_BASE}/admin/users/${encodeURIComponent(username)}`, {
+            method: "DELETE",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: "application/json"
+            }
+        });
+
+        ensureAuth(response);
+
+        if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            throw new Error(payload.error || "Unable to delete admin.");
+        }
+
+        showSuperAdminMessage(`Admin ${username} deleted.`);
+        await loadAdmins();
+    } catch (error) {
+        showSuperAdminMessage(error.message, true);
+    }
+}
+
 function renderRooms(rooms) {
+    if (!roomList) {
+        return;
+    }
+
+    if (!roomCardTemplate) {
+        showStatus("Room template unavailable.", true);
+        return;
+    }
+
     if (!rooms.length) {
-        roomList.innerHTML = "<p class=\"subtext\">No rooms yet. Create one to get started.</p>";
+        roomList.innerHTML = '<p class="subtext">No rooms yet. Create one to get started.</p>';
         showStatus("No rooms available.");
         return;
     }
 
     showStatus(`${rooms.length} room(s) available.`);
-    roomList.innerHTML = rooms.map(renderRoomCard).join("");
+    roomList.innerHTML = "";
+    const fragment = document.createDocumentFragment();
+
+    rooms.forEach((room) => {
+        const element = createRoomElement(room);
+        if (element) {
+            fragment.appendChild(element);
+        }
+    });
+
+    roomList.appendChild(fragment);
 }
 
-function renderRoomCard(room) {
+function createRoomElement(room) {
     const canManage =
         currentUser &&
         (currentUser.isSuperAdmin || room.owner === currentUser.username);
 
     const inviteList = room.songRequests || [];
-    const inviteHtml = inviteList.length
-        ? inviteList
-            .map(
-                (invite) =>
-                    `<li>${escapeHtml(invite.song)} <span class="subtext">(${escapeHtml(invite.requester)})</span></li>`
-            )
-            .join("")
-        : "<li class=\"subtext\">No song requests yet.</li>";
+    const clone = roomCardTemplate.content.firstElementChild.cloneNode(true);
+    clone.dataset.roomId = room.id;
 
-    const inviteForm =
-        currentUser?.isAdmin && canManage
-            ? `<form class="invite-form" data-room-id="${room.id}">
-           <input name="guest" placeholder="Invite username" autocomplete="off" />
-           <button class="tiny-button" type="submit">Invite</button>
-         </form>`
-            : "";
+    const nameEl = clone.querySelector("[data-room-name]");
+    const ownerEl = clone.querySelector("[data-room-owner]");
+    const occupantsEl = clone.querySelector("[data-room-occupants]");
+    const uptimeEl = clone.querySelector("[data-room-uptime]");
+    const enterButton = clone.querySelector(".enter-room");
+    const deleteButton = clone.querySelector(".delete-room");
+    const inviteForm = clone.querySelector(".invite-form");
+    const inviteListEl = clone.querySelector("[data-invite-list]");
 
-    return `
-    <article class="room-item" data-room-id="${room.id}">
-      <header class="room-header">
-        <div>
-          <h2>${escapeHtml(room.name)}</h2>
-          <p class="subtext">Owner: ${escapeHtml(room.owner)}</p>
-        </div>
-        <div class="room-actions">
-          <button class="button enter-room" data-room-id="${room.id}">Enter room</button>
-          ${canManage ? `<button class="button delete-room" data-room-id="${room.id}">Delete</button>` : ""}
-        </div>
-      </header>
-      <div class="room-meta">
-        <p><strong>Occupants:</strong> ${room.occupants}</p>
-        <p><strong>Uptime:</strong> ${escapeHtml(room.uptime)}</p>
-      </div>
-      ${inviteForm}
-      <div class="invite-section">
-        <p class="subtext"><strong>Song requests</strong></p>
-        <ul class="invite-list">
-          ${inviteHtml}
-        </ul>
-      </div>
-    </article>`;
+    if (nameEl) {
+        nameEl.textContent = escapeHtml(room.name);
+    }
+    if (ownerEl) {
+        ownerEl.textContent = escapeHtml(room.owner);
+    }
+    if (occupantsEl) {
+        occupantsEl.textContent = room.occupants;
+    }
+    if (uptimeEl) {
+        uptimeEl.textContent = escapeHtml(room.uptime);
+    }
+    if (enterButton) {
+        enterButton.dataset.roomId = room.id;
+    }
+    if (deleteButton) {
+        deleteButton.dataset.roomId = room.id;
+        deleteButton.classList.toggle("hidden", !canManage);
+    }
+    if (inviteForm) {
+        inviteForm.dataset.roomId = room.id;
+        inviteForm.classList.toggle("hidden", !(currentUser?.isAdmin && canManage));
+    }
+
+    if (inviteListEl) {
+        inviteListEl.innerHTML = "";
+        if (inviteList.length) {
+            inviteList.forEach((invite) => {
+                const li = document.createElement("li");
+                li.innerHTML = `${escapeHtml(invite.song)} <span class="subtext">(${escapeHtml(
+                    invite.requester
+                )})</span>`;
+                inviteListEl.appendChild(li);
+            });
+        } else {
+            const li = document.createElement("li");
+            li.classList.add("subtext");
+            li.textContent = "No song requests yet.";
+            inviteListEl.appendChild(li);
+        }
+    }
+
+    return clone;
 }
 
 async function handleRoomClick(event) {
@@ -348,6 +615,14 @@ function displayAdminMessage(message, isError = false) {
     }
     adminMessage.textContent = message;
     adminMessage.classList.toggle("warning", Boolean(isError));
+}
+
+function showSuperAdminMessage(message, isError = false) {
+    if (!superAdminMessage) {
+        return;
+    }
+    superAdminMessage.textContent = message;
+    superAdminMessage.classList.toggle("warning", Boolean(isError));
 }
 
 function ensureAuth(response) {

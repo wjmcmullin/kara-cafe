@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Super Admin Profile</title>
+    <base href="/kara-cafe/" />
+    <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+
+<body class="room">
+    <div class="room-page">
+        <nav class="room-nav">
+            <a class="link" href="karaoke-room/rooms.html">Back to lobby</a>
+            <button id="logoutButton" class="link-button logout-button" type="button">Log out</button>
+        </nav>
+
+        <section class="room-card">
+            <h1>Super Admin Profile</h1>
+            <p class="subtext">Only Super Admins can use this page to update their username, email, and password.</p>
+
+            <div class="profile-summary">
+                <p><strong>Username:</strong> <span id="profileUsername">Loading…</span></p>
+                <p><strong>Role:</strong> <span id="profileRole">SUPER_ADMIN</span></p>
+                <p><strong>Email:</strong> <span id="profileEmail">Loading…</span></p>
+            </div>
+
+            <form id="usernameForm" class="room-form">
+                <input id="usernameInput" name="username" type="text" placeholder="New username" autocomplete="username"
+                    required />
+                <button class="button" type="submit">Update my username</button>
+            </form>
+            <p id="usernameMessage" class="subtext"></p>
+
+            <form id="emailForm" class="room-form">
+                <input id="emailInput" name="email" type="email" placeholder="Email address" autocomplete="email"
+                    required />
+                <button class="button" type="submit">Update my email</button>
+            </form>
+            <p id="emailMessage" class="subtext"></p>
+
+            <form id="passwordForm" class="room-form">
+                <input name="password" type="password" placeholder="New password" autocomplete="new-password"
+                    required />
+                <input name="confirmPassword" type="password" placeholder="Confirm new password"
+                    autocomplete="new-password" required />
+                <button class="button" type="submit">Update my password</button>
+            </form>
+            <p id="profileMessage" class="subtext"></p>
+        </section>
+    </div>
+
+    <script src="assets/js/super-admin-profile.js"></script>
+</body>
+
+</html>

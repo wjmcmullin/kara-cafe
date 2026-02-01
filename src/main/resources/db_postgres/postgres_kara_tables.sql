@@ -1,7 +1,8 @@
 CREATE TABLE IF NOT EXISTS kara_users (
-	username TEXT PRIMARY KEY,
-	password_hash TEXT NOT NULL,
-	role TEXT NOT NULL,
-	super_admin BOOLEAN NOT NULL DEFAULT FALSE,
-	created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
-)
+    username TEXT PRIMARY KEY,
+    password_hash TEXT NOT NULL,
+    role TEXT NOT NULL,
+    super_admin BOOLEAN NOT NULL DEFAULT FALSE,
+    email TEXT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);

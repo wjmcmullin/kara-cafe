@@ -1,12 +1,12 @@
 services:
   kara-cafe-app:
     image: quay.io/wildfly/wildfly:latest
-    container_name: wildfly
-    hostname: wildfly
+    container_name: kara-cafe
+    hostname: karacafe
     ports:
       - "8080:8080"
     environment:
-      DB_URL: jdbc:postgresql://postgres:5432/kara
+      DB_URL: jdbc:postgresql://postgreskara:5432/kara
       DB_USER: postgres
       DB_PASSWORD: root
       KARAOKE_VIDEO_DIR: /kara-cafe/videos
@@ -18,7 +18,7 @@ services:
   postgres:
     image: postgres:18-alpine
     container_name: kara-postgres
-    hostname: postgres
+    hostname: postgreskara
     environment:
       POSTGRES_DB: kara
       POSTGRES_USER: postgres
@@ -33,6 +33,7 @@ services:
 networks:
   wildfly_server_net:
     name: wildfly_server_net
+    external: true      
 volumes:
   postgres_db:
     name: kara_postgres_db

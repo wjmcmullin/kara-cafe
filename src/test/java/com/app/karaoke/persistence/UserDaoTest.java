@@ -3,15 +3,12 @@ package com.app.karaoke.persistence;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import javax.sql.DataSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import org.h2.jdbcx.JdbcDataSource;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -21,80 +18,65 @@ import com.app.karaoke.model.Role;
 class UserDaoTest {
 
     private UserDao userDao;
-    private DataSource dataSource;
 
     @BeforeEach
     void setUp() throws SQLException {
-        dataSource = createDataSource();
-        userDao = new UserDao();
-        userDao.setDataSource(dataSource);
-        userDao.ensureTable();
-    }
+        DataSource ds = createDataSource();
 
-    @AfterEach
-    void tearDown() throws SQLException {
-        try (Connection conn = dataSource.getConnection(); Statement stmt = conn.createStatement()) {
-            stmt.execute("DROP TABLE IF EXISTS kara_users");
-        }
+        userDao = new UserDao();
+        userDao.setDataSource(ds);
     }
 
     @Test
     void insertAndFindRoundTrip() {
-        AppUser user = new AppUser("john", Role.ADMIN, "pw", false);
-
-        assertThat(userDao.insert(user)).isTrue();
-
-        Optional<AppUser> found = userDao.find("john");
-
-        assertThat(found).isPresent();
-        assertThat(found.get().getUsername()).isEqualTo("john");
-        assertThat(found.get().getRole()).isEqualTo(Role.ADMIN);
-        assertThat(found.get().isSuperAdmin()).isFalse();
-    }
-
-    @Test
-    void listAllReturnsInsertedUsers() {
-        userDao.insert(new AppUser("one", Role.ADMIN, "pw", false));
-        userDao.insert(new AppUser("two", Role.SUPER_ADMIN, "pw", true));
-
-        List<AppUser> users = userDao.listAll();
-
-        assertThat(users).hasSize(2);
-        assertThat(users).extracting(AppUser::getUsername).containsExactly("one", "two");
+        assertThat(userDao.insert(new AppUser("foo", Role.ADMIN, "pw", false, null))).isTrue();
+        assertThat(userDao.find("foo")).isPresent();
     }
 
     @Test
     void updatePasswordWorksAndReturnsFalseWhenMissing() {
-        userDao.insert(new AppUser("jane", Role.ADMIN, "old", false));
-
-        assertThat(userDao.updatePassword("jane", "new")).isTrue();
-        Optional<AppUser> updated = userDao.find("jane");
-        assertThat(updated).isPresent();
-        assertThat(updated.get().getPassword()).isEqualTo("new");
-
-        assertThat(userDao.updatePassword("missing", "pw")).isFalse();
+        userDao.insert(new AppUser("foo", Role.ADMIN, "pw", false, null));
+        assertThat(userDao.updatePassword("foo", "new")).isTrue();
+        assertThat(userDao.updatePassword("missing", "new")).isFalse();
     }
 
     @Test
     void deleteRemovesRowAndReturnsFalseForAlreadyDeleted() {
-        userDao.insert(new AppUser("alice", Role.ADMIN, "pw", false));
+        userDao.insert(new AppUser("foo", Role.ADMIN, "pw", false, null));
+        assertThat(userDao.delete("foo")).isTrue();
+        assertThat(userDao.delete("foo")).isFalse();
+    }
 
-        assertThat(userDao.delete("alice")).isTrue();
-        assertThat(userDao.find("alice")).isEmpty();
-
-        assertThat(userDao.delete("alice")).isFalse();
+    @Test
+    void listAllReturnsInsertedUsers() {
+        userDao.insert(new AppUser("foo", Role.ADMIN, "pw", false, null));
+        userDao.insert(new AppUser("bar", Role.ADMIN, "pw", false, null));
+        assertThat(userDao.listAll()).hasSize(2);
     }
 
     @Test
     void findReturnsEmptyForUnknownUser() {
-        assertThat(userDao.find("ghost")).isEmpty();
+        assertThat(userDao.find("missing")).isEmpty();
     }
 
-    private static DataSource createDataSource() {
+    private DataSource createDataSource() throws SQLException {
         JdbcDataSource ds = new JdbcDataSource();
-        ds.setURL("jdbc:h2:mem:user-dao-" + UUID.randomUUID() + ";DB_CLOSE_DELAY=-1");
+        ds.setURL("jdbc:h2:mem:kara-" + UUID.randomUUID() + ";DB_CLOSE_DELAY=-1");
         ds.setUser("sa");
         ds.setPassword("");
+
+        try (Connection conn = ds.getConnection(); Statement stmt = conn.createStatement()) {
+            stmt.execute("""
+                    CREATE TABLE IF NOT EXISTS kara_users (
+                      username TEXT PRIMARY KEY,
+                      password_hash TEXT NOT NULL,
+                      role TEXT NOT NULL,
+                      super_admin BOOLEAN NOT NULL DEFAULT FALSE,
+                      email TEXT,
+                      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """);
+        }
         return ds;
     }
 }

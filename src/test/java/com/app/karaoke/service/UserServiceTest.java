@@ -1,19 +1,20 @@
 package com.app.karaoke.service;
 
-import com.app.karaoke.model.AppUser;
-import com.app.karaoke.model.Role;
-import com.app.karaoke.persistence.UserDao;
-import org.h2.jdbcx.JdbcDataSource;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.UUID;
 
+import javax.sql.DataSource;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import org.h2.jdbcx.JdbcDataSource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import com.app.karaoke.model.AppUser;
+import com.app.karaoke.model.Role;
+import com.app.karaoke.persistence.UserDao;
 
 class UserServiceTest {
 
@@ -66,6 +67,29 @@ class UserServiceTest {
         assertThat(userService.listUsers()).anyMatch(user -> user.getUsername().equals(username));
     }
 
+    @Test
+    void changeUsernameUpdatesTheRecord() {
+        String username = "admin-rename-" + UUID.randomUUID();
+        userService.createAdmin(username, "pw");
+
+        assertThat(userService.changeUsername(username, "renamed")).isTrue();
+        assertThat(userService.listUsers()).anyMatch(user -> user.getUsername().equals("renamed"));
+        assertThat(userService.usernameExists("renamed")).isTrue();
+        assertThat(userService.usernameExists(username)).isFalse();
+    }
+
+    @Test
+    void changeEmailSavesValidAndRejectsInvalid() {
+        String username = "admin-email-" + UUID.randomUUID();
+        userService.createAdmin(username, "pw");
+
+        assertThat(userService.changeEmail(username, "foo@example.com")).isTrue();
+        assertThat(userService.isValidEmail("foo@example.com")).isTrue();
+
+        assertThat(userService.changeEmail(username, "invalid")).isFalse();
+        assertThat(userService.changeEmail(username, "")).isFalse();
+    }
+
     private DataSource createDataSource() throws SQLException {
         JdbcDataSource ds = new JdbcDataSource();
         ds.setURL("jdbc:h2:mem:kara-" + UUID.randomUUID() + ";DB_CLOSE_DELAY=-1");
@@ -79,6 +103,7 @@ class UserServiceTest {
                       password_hash TEXT NOT NULL,
                       role TEXT NOT NULL,
                       super_admin BOOLEAN NOT NULL DEFAULT FALSE,
+                      email TEXT,
                       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                     )
                     """);

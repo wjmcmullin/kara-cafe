@@ -2,6 +2,7 @@ package com.app.karaoke.service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 import org.mindrot.jbcrypt.BCrypt;
 
@@ -15,6 +16,8 @@ import jakarta.inject.Inject;
 
 @ApplicationScoped
 public class UserService {
+
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
 
     private UserDao userDao;
 
@@ -38,7 +41,8 @@ public class UserService {
                     superAdminUsername,
                     Role.SUPER_ADMIN,
                     hash(superAdminPassword),
-                    true
+                    true,
+                    null
             );
             userDao.insert(superUser);
         }
@@ -56,7 +60,7 @@ public class UserService {
         if (userDao.find(username).isPresent()) {
             return Optional.empty();
         }
-        AppUser user = new AppUser(username, Role.ADMIN, hash(password), false);
+        AppUser user = new AppUser(username, Role.ADMIN, hash(password), false, null);
         return userDao.insert(user) ? Optional.of(user) : Optional.empty();
     }
 
@@ -69,6 +73,34 @@ public class UserService {
             return false;
         }
         return userDao.updatePassword(username, hash(newPassword));
+    }
+
+    public boolean changeUsername(String currentUsername, String newUsername) {
+        if (currentUsername == null || currentUsername.isBlank() || newUsername == null || newUsername.isBlank()) {
+            return false;
+        }
+        return userDao.updateUsername(currentUsername, newUsername);
+    }
+
+    public boolean changeEmail(String username, String email) {
+        if (username == null || username.isBlank() || email == null || email.isBlank()) {
+            return false;
+        }
+        if (!isValidEmail(email)) {
+            return false;
+        }
+        return userDao.updateEmail(username, email);
+    }
+
+    public boolean usernameExists(String username) {
+        if (username == null || username.isBlank()) {
+            return false;
+        }
+        return userDao.find(username).isPresent();
+    }
+
+    public boolean isValidEmail(String email) {
+        return email != null && EMAIL_PATTERN.matcher(email).matches();
     }
 
     public boolean deleteUser(String username) {

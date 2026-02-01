@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Karaoke Room Lobby</title>
+    <base href="/kara-cafe/" />
+    <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+
+<body class="room">
+    <div class="room-page">
+        <nav class="room-nav">
+            <a id="profileLink" class="link hidden" href="#">My profile</a>
+            <button id="logoutButton" class="link-button logout-button" type="button">Log out</button>
+        </nav>
+
+        <section class="room-card">
+            <div class="lobby-grid">
+                <aside id="adminPanel" class="admin-panel hidden">
+                    <h2>Create Admin User</h2>
+                    <p class="subtext">Super Admins can provision new Admin accounts.</p>
+                    <form id="createAdminForm" class="room-form">
+                        <input name="username" placeholder="Admin username" autocomplete="off" required />
+                        <input name="password" type="password" placeholder="Password" autocomplete="new-password"
+                            required />
+                        <button class="button" type="submit">Create admin</button>
+                    </form>
+                    <p id="adminMessage" class="subtext"></p>
+                </aside>
+
+                <article class="room-widget">
+                    <div class="room-main">
+                        <h1>Karaoke Room Lobby</h1>
+                        <p class="subtext">Admins and Super Admins can create, delete, and invite guests from here.</p>
+
+                        <form id="createRoomForm" class="room-form hidden">
+                            <input id="roomNameInput" name="roomName" type="text" placeholder="Room name" required />
+                            <button class="button" type="submit">Create room</button>
+                        </form>
+                        <p id="createMessage" class="subtext"></p>
+
+                        <div id="roomList" class="room-grid"></div>
+                        <p id="status" class="subtext">Loading rooms…</p>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section id="superAdminListing" class="room-card hidden">
+            <h2>Super Admin: All Admin Users</h2>
+            <p class="subtext">Only Super Admins can view this list. It appears immediately after login.</p>
+            <div id="superAdminMessage" class="subtext"></div>
+            <div id="superAdminList" class="admin-list"></div>
+        </section>
+    </div>
+
+    <template id="roomCardTemplate">
+        <article class="room-item" data-room-id="">
+            <header class="room-header">
+                <div>
+                    <h2 data-room-name></h2>
+                    <p class="subtext">Owner: <span data-room-owner></span></p>
+                </div>
+                <div class="room-actions">
+                    <button class="button enter-room" type="button">Enter room</button>
+                    <button class="button delete-room" type="button">Delete</button>
+                </div>
+            </header>
+            <div class="room-meta">
+                <p><strong>Occupants:</strong> <span data-room-occupants></span></p>
+                <p><strong>Uptime:</strong> <span data-room-uptime></span></p>
+            </div>
+            <form class="invite-form" data-room-id="">
+                <input name="guest" placeholder="Invite username" autocomplete="off" />
+                <button class="tiny-button" type="submit">Invite</button>
+            </form>
+            <div class="invite-section">
+                <p class="subtext"><strong>Song requests</strong></p>
+                <ul class="invite-list" data-invite-list></ul>
+            </div>
+        </article>
+    </template>
+
+    <script src="assets/js/rooms.js"></script>
+</body>
+
+</html>

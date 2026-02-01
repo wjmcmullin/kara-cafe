@@ -360,3 +360,40 @@ input:focus {
     max-width: 100%;
     display: block;
 }
+
+.admin-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.inline-form .tiny-button,
+.button.delete-admin {
+    width: 150px;
+    min-width: 120px;
+    padding: 0.45rem 0.9rem;
+    border-radius: 0.75rem;
+    font-size: 0.85rem;
+}
+
+.button.delete-admin {
+    background: #ff4d4f;
+    color: #ffffff;
+    border: none;
+}
+
+
+.button.delete-admin {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.85rem;
+    border-radius: 0.75rem;
+    background: #ff4d4f;
+    color: #ffffff;
+    width: auto;
+    max-width: 120px;
+}
+
+.button.delete-admin:hover {
+    background: #d83b3e;
+}
