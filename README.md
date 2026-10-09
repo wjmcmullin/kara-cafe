@@ -16,7 +16,7 @@ A lightweight Java web app that powers a karaoke lobby + room experience. It’s
 - Logs controller/service/authentication events through Log4j 2 for observability
 
 ## Build instructions
-1. Make sure you have JDK 21+ and Maven installed.
+1. Make sure you have JDK 25+ and Maven installed.
 2. From the project root:
 
    ```bash

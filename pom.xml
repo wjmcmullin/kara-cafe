@@ -12,8 +12,8 @@
     <description>Lightweight Java karaoke lobby + room experience</description>
 
     <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
+        <maven.compiler.source>25</maven.compiler.source>
+        <maven.compiler.target>25</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jakarta.version>3.1.0</jakarta.version>
         <log4j.version>2.21.0</log4j.version>
