@@ -7,7 +7,8 @@ let currentRoomId = null;
 document.addEventListener("DOMContentLoaded", () => {
     console.log("Search page loading");
     const params = new URLSearchParams(window.location.search);
-    currentToken = params.get("token") || localStorage.getItem("karaToken");
+    const tokenFromQuery = params.get("token");
+    currentToken = tokenFromQuery || localStorage.getItem("karaToken");
     currentRoomId = params.get("id");
 
     if (!currentToken || !currentRoomId) {
@@ -18,11 +19,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     localStorage.setItem("karaToken", currentToken);
 
+    if (tokenFromQuery) {
+        params.delete("token");
+        const sanitizedQuery = params.toString();
+        const cleanUrl = `${window.location.pathname}${sanitizedQuery ? `?${sanitizedQuery}` : ""}`;
+        window.history.replaceState({}, "", cleanUrl);
+    }
+
     const backLink = document.getElementById("backToRoomLink");
     if (backLink) {
         const url = new URL("/kara-cafe/karaoke-room/room", window.location.origin);
         url.searchParams.set("id", currentRoomId);
-        url.searchParams.set("token", currentToken);
         backLink.href = url.toString();
     }
 
@@ -118,25 +125,39 @@ function renderResults(directory, videos) {
         return;
     }
 
+    list.innerHTML = "";
+
     if (!videos.length) {
-        list.innerHTML = '<li class="subtext">No karaoke videos found.</li>';
+        const emptyItem = document.createElement("li");
+        emptyItem.className = "subtext";
+        emptyItem.textContent = "No karaoke videos found.";
+        list.appendChild(emptyItem);
         return;
     }
 
-    list.innerHTML = videos
-        .map((entry) => {
-            const display = escapeHtml(entry.name);
-            return `
-                <li>
-                    <div class="video-entry">
-                        <span>${display}</span>
-                        <button class="tiny-button request-video" type="button" data-path="${escapeHtml(
-                entry.relativePath
-            )}">Add to queue</button>
-                    </div>
-                </li>`;
-        })
-        .join("");
+    const fragment = document.createDocumentFragment();
+
+    videos.forEach((entry) => {
+        const li = document.createElement("li");
+        const container = document.createElement("div");
+        container.className = "video-entry";
+
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = entry.name || "(unnamed)";
+
+        const button = document.createElement("button");
+        button.className = "tiny-button request-video";
+        button.type = "button";
+        button.textContent = "Add to queue";
+        button.dataset.path = entry.relativePath || "";
+
+        container.appendChild(nameSpan);
+        container.appendChild(button);
+        li.appendChild(container);
+        fragment.appendChild(li);
+    });
+
+    list.appendChild(fragment);
 }
 
 async function handleRequestClick(event) {
@@ -193,10 +214,6 @@ async function safeJson(response) {
     } catch {
         return {};
     }
-}
-
-function escapeHtml(value) {
-    return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 function ensureAuth(response) {

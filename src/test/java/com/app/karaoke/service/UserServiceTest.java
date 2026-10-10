@@ -9,6 +9,7 @@ import javax.sql.DataSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import org.h2.jdbcx.JdbcDataSource;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -22,6 +23,9 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() throws SQLException {
+        System.setProperty("kara.super-admin.username", "super-admin");
+        System.setProperty("kara.super-admin.password", "test-super-admin-password");
+
         DataSource ds = createDataSource();
 
         UserDao dao = new UserDao();
@@ -31,6 +35,12 @@ class UserServiceTest {
         userService.setUserDao(dao);
 
         userService.init();
+    }
+
+    @AfterEach
+    void tearDown() {
+        System.clearProperty("kara.super-admin.username");
+        System.clearProperty("kara.super-admin.password");
     }
 
     @Test

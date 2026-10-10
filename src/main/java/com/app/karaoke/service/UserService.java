@@ -18,15 +18,16 @@ import jakarta.inject.Inject;
 public class UserService {
 
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
+    private static final Pattern USERNAME_PATTERN = Pattern.compile("^[A-Za-z0-9._-]{3,64}$");
 
     private UserDao userDao;
 
-    private final String superAdminUsername;
-    private final String superAdminPassword;
+    private final String configuredSuperAdminUsername;
+    private final String configuredSuperAdminPassword;
 
     public UserService() {
-        this.superAdminUsername = pick("kara.super-admin.username", "KARA_SUPER_ADMIN_USERNAME", "super-admin");
-        this.superAdminPassword = pick("kara.super-admin.password", "KARA_SUPER_ADMIN_PASSWORD", "admin");
+        this.configuredSuperAdminUsername = pickOptional("kara.super-admin.username", "KARA_SUPER_ADMIN_USERNAME");
+        this.configuredSuperAdminPassword = pickOptional("kara.super-admin.password", "KARA_SUPER_ADMIN_PASSWORD");
     }
 
     @Inject
@@ -36,15 +37,42 @@ public class UserService {
 
     @PostConstruct
     void init() {
-        if (userDao.find(superAdminUsername).isEmpty()) {
+        boolean hasConfiguredCredentials = configuredSuperAdminUsername != null && configuredSuperAdminPassword != null;
+
+        if (hasConfiguredCredentials) {
+            Optional<AppUser> configuredUser = userDao.find(configuredSuperAdminUsername);
+            if (configuredUser.isPresent()) {
+                AppUser existing = configuredUser.get();
+                if (!existing.isSuperAdmin()) {
+                    throw new IllegalStateException(
+                            "Configured bootstrap user exists but is not SUPER_ADMIN: " + configuredSuperAdminUsername
+                    );
+                }
+
+                if (!BCrypt.checkpw(configuredSuperAdminPassword, existing.getPassword())) {
+                    userDao.updatePassword(configuredSuperAdminUsername, hash(configuredSuperAdminPassword));
+                }
+                return;
+            }
+
             AppUser superUser = new AppUser(
-                    superAdminUsername,
+                    configuredSuperAdminUsername,
                     Role.SUPER_ADMIN,
-                    hash(superAdminPassword),
+                    hash(configuredSuperAdminPassword),
                     true,
                     null
             );
             userDao.insert(superUser);
+            return;
+        }
+
+        boolean hasExistingSuperAdmin = userDao.listAll().stream().anyMatch(AppUser::isSuperAdmin);
+        if (!hasExistingSuperAdmin) {
+            throw new IllegalStateException(
+                    "Missing required super-admin bootstrap credential for first-time setup. "
+                            + "Set system properties 'kara.super-admin.username' and 'kara.super-admin.password' "
+                            + "or environment variables 'KARA_SUPER_ADMIN_USERNAME' and 'KARA_SUPER_ADMIN_PASSWORD'."
+            );
         }
     }
 
@@ -57,10 +85,40 @@ public class UserService {
         if (username == null || username.isBlank() || password == null || password.isBlank()) {
             return Optional.empty();
         }
-        if (userDao.find(username).isPresent()) {
+
+        String normalizedUsername = username.trim();
+        if (!isValidUsername(normalizedUsername)) {
             return Optional.empty();
         }
-        AppUser user = new AppUser(username, Role.ADMIN, hash(password), false, null);
+
+        if (userDao.find(normalizedUsername).isPresent()) {
+            return Optional.empty();
+        }
+
+        AppUser user = new AppUser(normalizedUsername, Role.ADMIN, hash(password), false, null);
+        return userDao.insert(user) ? Optional.of(user) : Optional.empty();
+    }
+
+    public Optional<AppUser> createUser(String username, String password, String email) {
+        if (username == null || username.isBlank() || password == null || password.isBlank()) {
+            return Optional.empty();
+        }
+
+        String normalizedUsername = username.trim();
+        if (!isValidUsername(normalizedUsername)) {
+            return Optional.empty();
+        }
+
+        if (userDao.find(normalizedUsername).isPresent()) {
+            return Optional.empty();
+        }
+
+        String normalizedEmail = (email == null || email.isBlank()) ? null : email.trim();
+        if (normalizedEmail != null && !isValidEmail(normalizedEmail)) {
+            return Optional.empty();
+        }
+
+        AppUser user = new AppUser(normalizedUsername, Role.USER, hash(password), false, normalizedEmail);
         return userDao.insert(user) ? Optional.of(user) : Optional.empty();
     }
 
@@ -79,7 +137,13 @@ public class UserService {
         if (currentUsername == null || currentUsername.isBlank() || newUsername == null || newUsername.isBlank()) {
             return false;
         }
-        return userDao.updateUsername(currentUsername, newUsername);
+
+        String normalizedUsername = newUsername.trim();
+        if (!isValidUsername(normalizedUsername)) {
+            return false;
+        }
+
+        return userDao.updateUsername(currentUsername, normalizedUsername);
     }
 
     public boolean changeEmail(String username, String email) {
@@ -103,6 +167,10 @@ public class UserService {
         return email != null && EMAIL_PATTERN.matcher(email).matches();
     }
 
+    public boolean isValidUsername(String username) {
+        return username != null && USERNAME_PATTERN.matcher(username).matches();
+    }
+
     public boolean deleteUser(String username) {
         return userDao.find(username)
                 .filter(user -> !user.isSuperAdmin())
@@ -114,12 +182,17 @@ public class UserService {
         return BCrypt.hashpw(password, BCrypt.gensalt());
     }
 
-    private static String pick(String prop, String env, String fallback) {
+    private static String pickOptional(String prop, String env) {
         String value = System.getProperty(prop);
         if (value != null && !value.isBlank()) {
             return value;
         }
+
         value = System.getenv(env);
-        return (value != null && !value.isBlank()) ? value : fallback;
+        if (value != null && !value.isBlank()) {
+            return value;
+        }
+
+        return null;
     }
 }

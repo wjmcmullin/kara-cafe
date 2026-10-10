@@ -160,12 +160,14 @@ function ensureProfileLink() {
         return null;
     }
 
+    const navLinks = nav.querySelector(".room-nav-links") || nav;
+
     profileLink = document.createElement("a");
     profileLink.id = "profileLink";
     profileLink.className = "link hidden";
     profileLink.href = "#";
     profileLink.textContent = "My profile";
-    nav.insertBefore(profileLink, nav.firstElementChild);
+    navLinks.insertBefore(profileLink, navLinks.firstElementChild);
     return profileLink;
 }
 
@@ -308,27 +310,68 @@ function renderAdminList(admins) {
         return;
     }
 
+    superAdminList.innerHTML = "";
+
     if (!admins.length) {
-        superAdminList.innerHTML = '<p class="subtext">No admins created yet.</p>';
+        const empty = document.createElement("p");
+        empty.className = "subtext";
+        empty.textContent = "No admins created yet.";
+        superAdminList.appendChild(empty);
         showSuperAdminMessage("Create your first admin above.");
         return;
     }
 
-    superAdminList.innerHTML = admins
-        .map(
-            (admin) => `
-        <div class="admin-entry" data-admin="${escapeHtml(admin.username)}">
-          <span class="admin-name">${escapeHtml(admin.username)}</span>
-          <div class="admin-actions">
-            <form class="inline-form change-password-form" data-admin="${escapeHtml(admin.username)}">
-              <input name="password" type="password" placeholder="New password" autocomplete="new-password" required />
-              <button class="tiny-button" type="submit">Change password</button>
-            </form>
-            <button class="button delete-admin" type="button" data-admin="${escapeHtml(admin.username)}">Delete</button>
-          </div>
-        </div>`
-        )
-        .join("");
+    const fragment = document.createDocumentFragment();
+
+    admins.forEach((admin) => {
+        const username = admin.username || "";
+
+        const entry = document.createElement("div");
+        entry.className = "admin-entry";
+        entry.dataset.admin = username;
+
+        const name = document.createElement("span");
+        name.className = "admin-name";
+        name.textContent = username;
+
+        const actions = document.createElement("div");
+        actions.className = "admin-actions";
+
+        const form = document.createElement("form");
+        form.className = "inline-form change-password-form";
+        form.dataset.admin = username;
+
+        const input = document.createElement("input");
+        input.name = "password";
+        input.type = "password";
+        input.placeholder = "New password";
+        input.autocomplete = "new-password";
+        input.required = true;
+
+        const changeButton = document.createElement("button");
+        changeButton.className = "tiny-button";
+        changeButton.type = "submit";
+        changeButton.textContent = "Change password";
+
+        form.appendChild(input);
+        form.appendChild(changeButton);
+
+        const deleteButton = document.createElement("button");
+        deleteButton.className = "button delete-admin";
+        deleteButton.type = "button";
+        deleteButton.dataset.admin = username;
+        deleteButton.textContent = "Delete";
+
+        actions.appendChild(form);
+        actions.appendChild(deleteButton);
+
+        entry.appendChild(name);
+        entry.appendChild(actions);
+
+        fragment.appendChild(entry);
+    });
+
+    superAdminList.appendChild(fragment);
     showSuperAdminMessage(`${admins.length} admin(s) found.`);
 }
 
@@ -458,6 +501,10 @@ function createRoomElement(room) {
     const deleteButton = clone.querySelector(".delete-room");
     const inviteForm = clone.querySelector(".invite-form");
     const inviteListEl = clone.querySelector("[data-invite-list]");
+    const qrSection = clone.querySelector("[data-room-qr]");
+    const qrImage = clone.querySelector("[data-qr-image]");
+    const qrLink = clone.querySelector("[data-qr-link]");
+    const qrMessage = clone.querySelector("[data-qr-message]");
 
     if (nameEl) {
         nameEl.textContent = escapeHtml(room.name);
@@ -481,6 +528,14 @@ function createRoomElement(room) {
     if (inviteForm) {
         inviteForm.dataset.roomId = room.id;
         inviteForm.classList.toggle("hidden", !(currentUser?.isAdmin && canManage));
+    }
+
+    if (qrSection) {
+        const canShowQr = Boolean(currentUser?.isAdmin && canManage);
+        qrSection.classList.toggle("hidden", !canShowQr);
+        if (canShowQr && qrImage && qrLink && qrMessage) {
+            loadRoomInviteQr(room.id, qrSection, qrImage, qrLink, qrMessage);
+        }
     }
 
     if (inviteListEl) {
@@ -560,7 +615,12 @@ async function handleInviteForm(event) {
     const roomId = form.dataset.roomId;
 
     if (!guest || !roomId) {
-        showStatus("Guest username is required.", true);
+        showStatus("Invite email is required.", true);
+        return;
+    }
+
+    if (!isValidEmail(guest)) {
+        showStatus("Enter a valid invite email.", true);
         return;
     }
 
@@ -583,11 +643,22 @@ async function handleInviteForm(event) {
         }
 
         const payload = await response.json();
-        const inviteLink = `${window.location.origin}${payload.entryUrl}`;
+        const inviteLink = payload.inviteUrl || `${window.location.origin}${payload.entryUrl}`;
 
-        showStatus(`Invited ${guest}. Share this link: ${inviteLink}`);
+        showStatus(`Invite ready for ${guest}. Share this link: ${inviteLink}`);
+
+        const roomCard = form.closest(".room-item");
+        const qrSection = roomCard?.querySelector("[data-room-qr]");
+        const qrImage = roomCard?.querySelector("[data-qr-image]");
+        const qrLink = roomCard?.querySelector("[data-qr-link]");
+        const qrMessage = roomCard?.querySelector("[data-qr-message]");
+
+        if (payload.qrCodeDataUrl && qrSection && qrImage && qrLink && qrMessage) {
+            applyInviteQr(payload.qrCodeDataUrl, inviteLink, qrSection, qrImage, qrLink, qrMessage);
+            qrMessage.textContent = `Invite generated for ${guest}.`;
+        }
+
         form.reset();
-        await loadRooms();
     } catch (error) {
         showStatus(error.message, true);
     }
@@ -637,4 +708,56 @@ function escapeHtml(value) {
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
+}
+
+function isValidEmail(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+async function loadRoomInviteQr(roomId, qrSection, qrImage, qrLink, qrMessage) {
+    try {
+        const response = await fetch(`${API_BASE}/rooms/${roomId}/invite`, {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: "application/json"
+            }
+        });
+
+        ensureAuth(response);
+
+        if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            throw new Error(payload.error || "Unable to generate invite QR code.");
+        }
+
+        const payload = await response.json();
+        const inviteLink = payload.inviteUrl || `${window.location.origin}${payload.entryUrl}`;
+
+        if (!payload.qrCodeDataUrl) {
+            throw new Error("Invite QR code is unavailable.");
+        }
+
+        applyInviteQr(payload.qrCodeDataUrl, inviteLink, qrSection, qrImage, qrLink, qrMessage);
+        qrMessage.textContent = "Scan with iOS or Android camera to join.";
+    } catch (error) {
+        qrSection.classList.remove("hidden");
+        qrImage.classList.add("hidden");
+        qrLink.classList.add("hidden");
+        qrMessage.textContent = error.message;
+        qrMessage.classList.add("warning");
+    }
+}
+
+function applyInviteQr(dataUrl, inviteUrl, qrSection, qrImage, qrLink, qrMessage) {
+    qrSection.classList.remove("hidden");
+
+    qrImage.src = dataUrl;
+    qrImage.classList.remove("hidden");
+
+    qrLink.href = inviteUrl;
+    qrLink.textContent = "Open invite link";
+    qrLink.classList.remove("hidden");
+
+    qrMessage.classList.remove("warning");
 }

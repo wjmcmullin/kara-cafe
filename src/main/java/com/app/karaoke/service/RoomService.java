@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -25,6 +26,7 @@ public class RoomService {
     private static final Logger LOG = LogManager.getLogger(RoomService.class);
 
     private final ConcurrentMap<String, Room> rooms = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, AtomicInteger> guestSequenceByRoom = new ConcurrentHashMap<>();
 
     public RoomDTO createRoom(String name, String owner) {
         LOG.debug("createRoom called name={} owner={}", name, owner);
@@ -121,6 +123,24 @@ public class RoomService {
         return Optional.of(new RoomDTO(room));
     }
 
+    public Optional<RoomDTO> startNextSong(String roomId) {
+        Room room = rooms.get(roomId);
+        if (room == null) {
+            return Optional.empty();
+        }
+        room.startNextSong();
+        return Optional.of(new RoomDTO(room));
+    }
+
+    public Optional<RoomDTO> finishCurrentSong(String roomId) {
+        Room room = rooms.get(roomId);
+        if (room == null) {
+            return Optional.empty();
+        }
+        room.finishCurrentSong();
+        return Optional.of(new RoomDTO(room));
+    }
+
     public Optional<RoomDTO> deleteRoom(String roomId) {
         LOG.debug("deleteRoom {}", roomId);
         Room removed = rooms.remove(roomId);
@@ -128,7 +148,14 @@ public class RoomService {
             LOG.warn("Attempted delete of missing room {}", roomId);
             return Optional.empty();
         }
+        guestSequenceByRoom.remove(roomId);
         LOG.info("Room {} deleted", roomId);
         return Optional.of(new RoomDTO(removed));
+    }
+
+    public String nextGuestDisplayName(String roomId) {
+        AtomicInteger sequence = guestSequenceByRoom.computeIfAbsent(roomId, ignored -> new AtomicInteger(0));
+        int number = sequence.incrementAndGet();
+        return String.format("pending-guest-%03d", number);
     }
 }

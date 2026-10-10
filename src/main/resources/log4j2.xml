@@ -13,7 +13,7 @@
             <AppenderRef ref="Console" />
             <AppenderRef ref="File" />
         </Root>
-        <Logger name="com.app.karaoke" level="debug" additivity="false">
+        <Logger name="com.app.karaoke" level="info" additivity="false">
             <AppenderRef ref="Console" />
             <AppenderRef ref="File" />
         </Logger>

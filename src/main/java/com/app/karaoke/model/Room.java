@@ -18,6 +18,7 @@ public class Room {
     private final Set<String> occupants = ConcurrentHashMap.newKeySet();
     private final Set<String> invitedUsers = ConcurrentHashMap.newKeySet();
     private final List<RoomSongRequest> songRequests = Collections.synchronizedList(new LinkedList<>());
+    private volatile RoomSongRequest currentSong;
 
     public Room(String id, String name, String owner) {
         this.id = Objects.requireNonNull(id);
@@ -71,13 +72,30 @@ public class Room {
     }
 
     public void addSongRequest(RoomSongRequest request) {
-        songRequests.add(0, request);
+        songRequests.add(request);
     }
 
     public List<RoomSongRequest> getSongRequests() {
         synchronized (songRequests) {
             return List.copyOf(songRequests);
         }
+    }
+
+    public synchronized RoomSongRequest startNextSong() {
+        if (songRequests.isEmpty()) {
+            currentSong = null;
+            return null;
+        }
+        currentSong = songRequests.remove(0);
+        return currentSong;
+    }
+
+    public synchronized void finishCurrentSong() {
+        currentSong = null;
+    }
+
+    public RoomSongRequest getCurrentSong() {
+        return currentSong;
     }
 
     public String getUptime() {

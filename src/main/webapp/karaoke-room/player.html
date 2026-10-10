@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>Karaoke Player</title>
+    <base href="/kara-cafe/" />
+    <link rel="stylesheet" href="assets/css/styles.css?v=20261010-11" />
+</head>
+
+<body class="room">
+    <div class="room-page">
+        <nav class="room-nav">
+            <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="roomNavLinks">Menu</button>
+            <div id="roomNavLinks" class="room-nav-links">
+                <a id="backToRoomLink" class="link" href="#">← Back to Room</a>
+                <button id="playerLogoutButton" class="link-button logout-button" type="button">Log out</button>
+            </div>
+        </nav>
+
+        <section class="room-card">
+            <h1 id="playerRoomName">Karaoke Player</h1>
+            <div class="player-grid">
+                <article class="player-main">
+                    <p id="playerNowPlaying" class="subtext">Nothing is playing yet.</p>
+                    <div class="player-controls-row">
+                        <button id="playQueueButton" class="button" type="button">Play</button>
+                        <button id="pauseResumeButton" class="button secondary" type="button">Pause</button>
+                        <button id="fullscreenPlayerButton" class="button secondary" type="button">Fullscreen</button>
+                        <button id="popoutPlayerButton" class="button secondary" type="button">Pop out</button>
+                        <label class="switch-control" for="showInviteQrToggle">
+                            <input id="showInviteQrToggle" type="checkbox" />
+                            <span>Show invite QR watermark</span>
+                        </label>
+                        <label class="watermark-opacity-control" for="watermarkOpacitySlider">
+                            <span>QR opacity</span>
+                            <input id="watermarkOpacitySlider" type="range" min="20" max="90" value="55" step="5" disabled />
+                            <span id="watermarkOpacityValue">55%</span>
+                        </label>
+                    </div>
+                    <div id="playerVideoShell" class="player-video-shell">
+                        <video id="karaokePlayer" class="karaoke-player hidden" controls playsinline preload="metadata" controlsList="nofullscreen"></video>
+                        <div id="playerQrWatermark" class="player-qr-watermark hidden" aria-hidden="true">
+                            <img id="playerQrWatermarkImage" alt="Invite QR watermark" />
+                        </div>
+                    </div>
+                    <p id="playerStatus" class="subtext"></p>
+                </article>
+
+                <aside class="player-queue">
+                    <p class="subtext"><strong>Live Queue</strong></p>
+                    <ul id="playerQueue" class="invite-list"></ul>
+                </aside>
+            </div>
+        </section>
+    </div>
+
+    <script src="assets/js/mobile-nav.js?v=20261010-11"></script>
+    <script src="assets/js/player.js?v=20261010-11"></script>
+</body>
+
+</html>

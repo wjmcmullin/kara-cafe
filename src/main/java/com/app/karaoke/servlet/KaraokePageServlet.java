@@ -12,7 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
  * Serves the extensionless room and search URLs by forwarding to the existing
  * HTML files.
  */
-@WebServlet(urlPatterns = {"/karaoke-room/room", "/karaoke-room/search"})
+@WebServlet(urlPatterns = {"/karaoke-room/room", "/karaoke-room/search", "/karaoke-room/player"})
 public class KaraokePageServlet extends HttpServlet {
 
     @Override
@@ -22,6 +22,8 @@ public class KaraokePageServlet extends HttpServlet {
 
         if (requestUri.endsWith("/search")) {
             target = "/karaoke-room/search.html";
+        } else if (requestUri.endsWith("/player")) {
+            target = "/karaoke-room/player.html";
         } else {
             target = "/karaoke-room/room.html";
         }

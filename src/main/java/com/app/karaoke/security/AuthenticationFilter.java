@@ -39,18 +39,17 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             return;
         }
 
-        String authorization = requestContext.getHeaderString(HttpHeaders.AUTHORIZATION);
-        if (authorization == null || !authorization.startsWith(BEARER)) {
+        String token = extractToken(requestContext);
+        if (token == null || token.isBlank()) {
             LOG.warn("Missing or invalid Authorization header");
             requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED)
                     .entity("Authentication required").build());
             return;
         }
 
-        String token = authorization.substring(BEARER.length());
         Optional<TokenInfo> info = tokenService.getTokenInfo(token);
         if (info.isEmpty()) {
-            LOG.warn("Invalid token {}", token);
+            LOG.warn("Invalid or expired token presented");
             requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED)
                     .entity("Invalid or expired token").build());
             return;
@@ -68,9 +67,27 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         LOG.debug("Token validated for {}", tokenInfo.getUser().getUsername());
     }
 
+    private String extractToken(ContainerRequestContext context) {
+        String authorization = context.getHeaderString(HttpHeaders.AUTHORIZATION);
+        if (authorization != null && authorization.startsWith(BEARER)) {
+            return authorization.substring(BEARER.length()).trim();
+        }
+
+        String path = context.getUriInfo().getPath();
+        if (path.endsWith("/media")) {
+            String token = context.getUriInfo().getQueryParameters().getFirst("token");
+            if (token != null && !token.isBlank()) {
+                return token.trim();
+            }
+        }
+
+        return null;
+    }
+
     private boolean isPublicPath(ContainerRequestContext context) {
         String path = context.getUriInfo().getPath();
         return path.endsWith("auth/login")
+                || path.endsWith("auth/register")
                 || path.endsWith("login.html")
                 || path.startsWith("assets/")
                 || path.isBlank();
@@ -78,8 +95,19 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
     private boolean isAllowedInvitePath(ContainerRequestContext context, TokenInfo tokenInfo) {
         String path = context.getUriInfo().getPath();
+        if (path.endsWith("auth/logout")
+                || path.endsWith("auth/session")
+                || path.endsWith("auth/guest-nickname")
+                || path.endsWith("rooms/config/video-dir")) {
+            return true;
+        }
+
         return tokenInfo.getRoomId()
-                .map(id -> path.endsWith("/" + id) || path.endsWith("/" + id + "/enter") || path.endsWith("/" + id + "/song-request"))
+                .map(id -> path.endsWith("/" + id)
+                        || path.endsWith("/" + id + "/enter")
+                        || path.endsWith("/" + id + "/song-request")
+                        || path.endsWith("/" + id + "/search")
+                        || path.endsWith("/" + id + "/media"))
                 .orElse(false);
     }
 }

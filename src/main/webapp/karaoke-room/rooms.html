@@ -3,16 +3,23 @@
 
 <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>Karaoke Room Lobby</title>
     <base href="/kara-cafe/" />
-    <link rel="stylesheet" href="assets/css/styles.css" />
+    <link rel="stylesheet" href="assets/css/styles.css?v=20261010-2" />
 </head>
 
 <body class="room">
     <div class="room-page">
         <nav class="room-nav">
-            <a id="profileLink" class="link hidden" href="#">My profile</a>
-            <button id="logoutButton" class="link-button logout-button" type="button">Log out</button>
+            <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="roomNavLinks">Menu</button>
+            <div id="roomNavLinks" class="room-nav-links">
+                <a id="profileLink" class="link hidden" href="#">My profile</a>
+                <button id="logoutButton" class="link-button logout-button" type="button">Log out</button>
+            </div>
         </nav>
 
         <section class="room-card">
@@ -21,8 +28,8 @@
                     <h2>Create Admin User</h2>
                     <p class="subtext">Super Admins can provision new Admin accounts.</p>
                     <form id="createAdminForm" class="room-form">
-                        <input name="username" placeholder="Admin username" autocomplete="off" required />
-                        <input name="password" type="password" placeholder="Password" autocomplete="new-password"
+                        <input name="username" type="text" placeholder="Admin username" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required />
+                        <input name="password" type="password" placeholder="Password" autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false"
                             required />
                         <button class="button" type="submit">Create admin</button>
                     </form>
@@ -35,7 +42,7 @@
                         <p class="subtext">Admins and Super Admins can create, delete, and invite guests from here.</p>
 
                         <form id="createRoomForm" class="room-form hidden">
-                            <input id="roomNameInput" name="roomName" type="text" placeholder="Room name" required />
+                            <input id="roomNameInput" name="roomName" type="text" placeholder="Room name" autocapitalize="words" autocorrect="off" spellcheck="false" required />
                             <button class="button" type="submit">Create room</button>
                         </form>
                         <p id="createMessage" class="subtext"></p>
@@ -72,9 +79,15 @@
                 <p><strong>Uptime:</strong> <span data-room-uptime></span></p>
             </div>
             <form class="invite-form" data-room-id="">
-                <input name="guest" placeholder="Invite username" autocomplete="off" />
-                <button class="tiny-button" type="submit">Invite</button>
+                <input name="guest" type="email" placeholder="Invite email" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false" required />
+                <button class="tiny-button" type="submit">Create invite</button>
             </form>
+            <div class="invite-section room-qr hidden" data-room-qr>
+                <p class="subtext"><strong>Mobile invite QR</strong></p>
+                <p class="subtext" data-qr-message>Generating QR code…</p>
+                <img class="room-qr-image hidden" data-qr-image alt="Room invite QR code" />
+                <a class="link hidden" data-qr-link target="_blank" rel="noopener noreferrer">Open invite link</a>
+            </div>
             <div class="invite-section">
                 <p class="subtext"><strong>Song requests</strong></p>
                 <ul class="invite-list" data-invite-list></ul>
@@ -82,7 +95,8 @@
         </article>
     </template>
 
-    <script src="assets/js/rooms.js"></script>
+    <script src="assets/js/mobile-nav.js?v=20261010-2"></script>
+    <script src="assets/js/rooms.js?v=20261010-2"></script>
 </body>
 
 </html>

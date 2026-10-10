@@ -12,6 +12,7 @@ public class RoomDTO {
     private final int occupants;
     private final List<String> invitedUsers;
     private final List<RoomSongRequest> songRequests;
+    private final RoomSongRequest currentSong;
 
     public RoomDTO(Room room) {
         this.id = Objects.requireNonNull(room.getId());
@@ -21,6 +22,7 @@ public class RoomDTO {
         this.occupants = room.getOccupantCount();
         this.invitedUsers = room.getInvitedUsers();
         this.songRequests = room.getSongRequests();
+        this.currentSong = room.getCurrentSong();
     }
 
     private RoomDTO buildRoomDto(String id, String name, String owner) {
@@ -54,5 +56,9 @@ public class RoomDTO {
 
     public List<RoomSongRequest> getSongRequests() {
         return songRequests;
+    }
+
+    public RoomSongRequest getCurrentSong() {
+        return currentSong;
     }
 }

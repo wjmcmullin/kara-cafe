@@ -17,13 +17,19 @@ A lightweight Java web app that powers a karaoke lobby + room experience. It’s
 
 ## Build instructions
 1. Make sure you have JDK 25+ and Maven installed.
-2. From the project root:
+2. For first-time setup (when no SUPER_ADMIN user exists in DB), set bootstrap credentials:
+   - `KARA_SUPER_ADMIN_USERNAME`
+   - `KARA_SUPER_ADMIN_PASSWORD`
+   (or system properties `kara.super-admin.username` / `kara.super-admin.password`)
+   Existing databases that already contain a SUPER_ADMIN can start without these values.
+   If you provide these values on startup, the matching SUPER_ADMIN account is created (if missing) or its password is synchronized.
+3. From the project root:
 
    ```bash
    mvn clean package
    ```
 
-3. Drop the generated `target/kara-cafe.war` into your servlet container (e.g., Tomcat) or run it with your preferred Java EE server.
+4. Drop the generated `target/kara-cafe.war` into your servlet container (e.g., Tomcat) or run it with your preferred Java EE server.
 
 ## Unit testing and coverage
 1. Run tests with the Clover instrumentation and coverage report:
@@ -37,8 +43,39 @@ A lightweight Java web app that powers a karaoke lobby + room experience. It’s
 
 ## Accessing the app
 - Lobby (login + room management): `http://<host>:<port>/kara-cafe/`
-- Room detail (admin or invite link): `http://<host>:<port>/karaoke-room/room.html?id=<roomId>&token=<token>`
+- Room detail (after login or guest join): `http://<host>:<port>/karaoke-room/room.html?id=<roomId>`
+- Guest invite landing page: `http://<host>:<port>/karaoke-room/join.html?id=<roomId>&token=<token>`
 - API base: `/kara-cafe/api/rooms/*`
+
+## Access from a cellphone on the same Wi-Fi
+1. Start the app normally (Docker Compose or your servlet container).
+2. Use your PC's LAN IP (not `localhost`) from your phone browser. Example:
+   - `http://192.168.1.59:8080/kara-cafe/`
+3. Set `KARA_PUBLIC_BASE_URL` to that LAN URL so invite QR/link generation uses phone-reachable host.
+4. Make sure your phone is on the same Wi-Fi network as your PC.
+5. On Windows, allow inbound TCP `8080` or set the active Wi-Fi network profile to **Private**.
+
+Quick checks on Windows:
+- Find LAN IP: `ipconfig`
+- Confirm host can reach app: `curl http://<LAN_IP>:8080/kara-cafe/`
+- Add firewall rule (PowerShell as Administrator):
+  - `New-NetFirewallRule -DisplayName "Kara Cafe 8080" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8080`
+
+## Mobile browser support (iOS + Android)
+- Supported targets: **Safari on iOS** and **Chrome on Android** (current versions).
+- Desktop usage is preserved; mobile improvements only adjust small-screen/touch behavior.
+- Mobile essentials included:
+  - Viewport metadata on all app pages
+  - Compact mobile nav menu pattern for room/profile/search pages
+  - Responsive layout/tap-target refinements in shared styles
+  - Input behavior tuned for mobile keyboards (reduced unwanted auto-capitalization/correction)
+
+Suggested smoke test on phone:
+1. Open lobby and log in.
+2. Create or enter a room.
+3. Invite a guest and verify room actions.
+4. Open Search Karaoke Videos.
+5. Open profile pages and submit one update form.
 
 ## Extensionless Room URLs
 - All browser navigation now uses clean paths (`/karaoke-room/room` and `/karaoke-room/search`) while the servlet forwards those requests to the existing HTML assets.

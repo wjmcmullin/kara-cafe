@@ -3,16 +3,23 @@
 
 <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>Karaoke Room</title>
     <base href="/kara-cafe/" />
-    <link rel="stylesheet" href="assets/css/styles.css" />
+    <link rel="stylesheet" href="assets/css/styles.css?v=20261010-2" />
 </head>
 
 <body class="room">
     <div class="room-page">
         <nav class="room-nav">
-            <a class="link" href="/kara-cafe/karaoke-room/">← Back to Karaoke Rooms</a>
-            <button id="roomLogoutButton" class="link-button logout-button" type="button">Log out</button>
+            <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="roomNavLinks">Menu</button>
+            <div id="roomNavLinks" class="room-nav-links">
+                <a id="backToRoomsLink" class="link" href="/kara-cafe/karaoke-room/">← Back to Karaoke Rooms</a>
+                <button id="roomLogoutButton" class="link-button logout-button" type="button">Log out</button>
+            </div>
         </nav>
 
         <section class="room-card" id="roomCard">
@@ -20,18 +27,33 @@
             <p id="roomOwner" class="subtext"></p>
             <p><strong>Occupants:</strong> <span id="roomOccupants">0</span></p>
             <p><strong>Uptime:</strong> <span id="roomUptime">00s</span></p>
+
+            <div class="room-actions">
+                <a id="openPlayerLink" class="button hidden" href="#">Open Video Player Page</a>
+            </div>
+
             <div class="invite-section">
-                <p class="subtext"><strong>Song Requests</strong></p>
+                <p class="subtext"><strong>Now Playing</strong></p>
+                <p id="nowPlaying" class="subtext">Nothing is playing yet.</p>
+            </div>
+
+            <div class="invite-section">
+                <p class="subtext"><strong>Queue</strong></p>
                 <ul id="songList" class="invite-list"></ul>
             </div>
-            <div class="room-actions">
-                <a id="searchVideosLink" class="button secondary" href="#">Search karaoke videos</a>
+
+            <div class="invite-section">
+                <p class="subtext"><strong>Available Songs</strong></p>
+                <p class="subtext">Directory: <span id="configuredDirectory">Loading…</span></p>
+                <ul id="videoResults" class="invite-list"></ul>
             </div>
+
             <p id="roomStatus" class="subtext"></p>
         </section>
     </div>
 
-    <script src="assets/js/room.js"></script>
+    <script src="assets/js/mobile-nav.js?v=20261010-2"></script>
+    <script src="assets/js/room.js?v=20261010-2"></script>
     <script>
         document.getElementById("roomLogoutButton")?.addEventListener("click", async () => {
             const token = localStorage.getItem("karaToken");

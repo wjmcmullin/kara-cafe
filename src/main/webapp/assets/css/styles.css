@@ -2,6 +2,7 @@
     font-family: "Segoe UI", system-ui, sans-serif;
     color: #f8fafc;
     background: #020617;
+    -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -136,7 +137,7 @@ input {
     border: 1px solid #334155;
     background: #0f172a;
     color: #f8fafc;
-    font-size: 1rem;
+    font-size: 16px;
 }
 
 input:focus {
@@ -147,6 +148,7 @@ input:focus {
 
 .button {
     width: 100%;
+    min-height: 44px;
     padding: 0.9rem;
     border-radius: 999px;
     border: none;
@@ -155,6 +157,7 @@ input:focus {
     font-weight: 600;
     font-size: 1rem;
     cursor: pointer;
+    touch-action: manipulation;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -176,6 +179,27 @@ input:focus {
     gap: 1rem;
 }
 
+.room-nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-left: auto;
+}
+
+.nav-toggle {
+    display: none;
+    min-height: 44px;
+    padding: 0.55rem 0.95rem;
+    border-radius: 999px;
+    border: 1px solid #334155;
+    background: #0f172a;
+    color: #f8fafc;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
 .link,
 .link-button {
     color: #38bdf8;
@@ -185,6 +209,7 @@ input:focus {
     background: none;
     cursor: pointer;
     font-size: 1rem;
+    touch-action: manipulation;
 }
 
 .link:hover,
@@ -249,14 +274,176 @@ input:focus {
     width: 100%;
 }
 
+.karaoke-player {
+    width: 100%;
+    max-height: 420px;
+    border-radius: 12px;
+    background: #000;
+    margin-top: 0.5rem;
+}
+
+.player-controls-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.player-controls-row .button {
+    width: auto;
+}
+
+.player-video-shell {
+    position: relative;
+}
+
+.player-qr-watermark {
+    position: absolute;
+    left: 0.85rem;
+    bottom: 1.1rem;
+    z-index: 3;
+    background: rgba(2, 6, 23, 0.72);
+    border: 1px solid rgba(148, 163, 184, 0.65);
+    border-radius: 10px;
+    padding: 0.35rem;
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+.player-qr-watermark img {
+    display: block;
+    width: 92px;
+    height: 92px;
+}
+
+.switch-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.92rem;
+    color: #cbd5f5;
+}
+
+.switch-control input {
+    width: 18px;
+    height: 18px;
+}
+
+.watermark-opacity-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.9rem;
+    color: #cbd5f5;
+}
+
+.watermark-opacity-control input[type="range"] {
+    width: 120px;
+}
+
+.watermark-opacity-control input[type="range"]:disabled {
+    opacity: 0.5;
+}
+
+.player-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.player-main,
+.player-queue {
+    background: #0b1523;
+    border: 1px solid #1e293b;
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+.video-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+body.player-popout-mode .room-nav,
+body.player-popout-mode .player-queue,
+body.player-popout-mode #backToRoomLink,
+body.player-popout-mode #playerLogoutButton,
+body.player-popout-mode .nav-toggle {
+    display: none !important;
+}
+
+body.player-popout-mode .room-page {
+    max-width: 100%;
+    padding: 0.5rem;
+}
+
+body.player-popout-mode .room-card {
+    padding: 0.75rem;
+}
+
+body.player-popout-mode .player-grid {
+    grid-template-columns: 1fr;
+}
+
+.player-video-shell:fullscreen,
+.player-video-shell:-webkit-full-screen {
+    width: 100vw;
+    height: 100vh;
+    background: #000;
+    position: relative;
+    overflow: hidden;
+}
+
+.player-video-shell:fullscreen .karaoke-player,
+.player-video-shell:-webkit-full-screen .karaoke-player,
+:fullscreen .karaoke-player,
+:-webkit-full-screen .karaoke-player,
+.karaoke-player:fullscreen,
+.karaoke-player:-webkit-full-screen {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
+    margin-top: 0 !important;
+    object-fit: cover;
+    border-radius: 0;
+    background: #000;
+    display: block;
+}
+
+.player-video-shell:fullscreen .player-qr-watermark,
+.player-video-shell:-webkit-full-screen .player-qr-watermark {
+    left: 1.25rem;
+    bottom: 1.25rem;
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+@media (max-width: 900px) {
+    .player-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .player-qr-watermark img {
+        width: 72px;
+        height: 72px;
+    }
+}
+
 .delete-room {
     background: #f87171;
     color: #020617;
     border: none;
     border-radius: 999px;
+    min-height: 44px;
     padding: 0.9rem;
     font-size: 1rem;
     cursor: pointer;
+    touch-action: manipulation;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -294,6 +481,18 @@ input:focus {
     font-size: 0.95rem;
 }
 
+.room-qr-image {
+    margin-top: 0.5rem;
+    max-width: 220px;
+    width: 100%;
+    border-radius: 12px;
+}
+
+.room-qr .link {
+    display: inline-block;
+    margin-top: 0.5rem;
+}
+
 .tiny-button {
     border-radius: 999px;
     border: none;
@@ -302,7 +501,9 @@ input:focus {
     font-weight: 600;
     font-size: 0.95rem;
     cursor: pointer;
+    min-height: 44px;
     padding: 0.65rem 1.1rem;
+    touch-action: manipulation;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     box-shadow: 0 10px 25px rgba(56, 189, 248, 0.35);
 }
@@ -396,4 +597,93 @@ input:focus {
 
 .button.delete-admin:hover {
     background: #d83b3e;
+}
+
+@media (max-width: 640px) {
+    body.room {
+        padding: 1rem;
+    }
+
+    .room-page {
+        width: 100%;
+        gap: 1rem;
+    }
+
+    .card,
+    .room-card,
+    .admin-panel,
+    .room-widget,
+    .room-item {
+        padding: 1rem;
+        border-radius: 12px;
+    }
+
+    .room-nav {
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .nav-toggle {
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .room-nav-links {
+        display: none;
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+        margin-left: 0;
+    }
+
+    .room-nav-links.open {
+        display: flex;
+    }
+
+    .room-nav-links .link,
+    .room-nav-links .link-button {
+        width: 100%;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 0.55rem 0.9rem;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    .room-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .room-actions {
+        flex-direction: row;
+        width: 100%;
+    }
+
+    .room-actions .button,
+    .room-actions .delete-room {
+        flex: 1;
+    }
+
+    .link,
+    .link-button {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+    }
+}
+
+@media (hover: none) and (pointer: coarse) {
+    .button:hover,
+    .delete-room:hover,
+    .tiny-button:hover,
+    .button.delete-admin:hover {
+        transform: none;
+        box-shadow: none;
+    }
 }

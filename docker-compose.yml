@@ -9,6 +9,9 @@ services:
       DB_URL: jdbc:postgresql://postgreskara:5432/kara
       DB_USER: postgres
       DB_PASSWORD: root
+      KARA_SUPER_ADMIN_USERNAME: superadmin
+      KARA_SUPER_ADMIN_PASSWORD: admin
+      KARA_PUBLIC_BASE_URL: http://192.168.1.59:8080
       KARAOKE_VIDEO_DIR: /kara-cafe/videos
     volumes:
       - .\target\kara-cafe.war:/opt/jboss/wildfly/standalone/deployments/kara-cafe.war:ro

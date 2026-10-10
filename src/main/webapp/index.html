@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Kara Café Login</title>
     <base href="/kara-cafe/" />
     <link rel="stylesheet" href="assets/css/styles.css" />
@@ -16,11 +17,11 @@
         <form id="loginForm">
             <label class="field">
                 <span>Username</span>
-                <input name="username" required autocomplete="username" />
+                <input name="username" type="text" required autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" />
             </label>
             <label class="field">
                 <span>Password</span>
-                <input name="password" type="password" required autocomplete="current-password" />
+                <input name="password" type="password" required autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" />
             </label>
             <button type="submit" class="button">Sign in</button>
             <p id="feedback" class="subtext"></p>

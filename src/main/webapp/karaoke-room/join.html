@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>Join Karaoke Room</title>
+    <base href="/kara-cafe/" />
+    <link rel="stylesheet" href="assets/css/styles.css?v=20261010-2" />
+</head>
+
+<body class="room">
+    <div class="room-page">
+        <section class="room-card">
+            <h1>Join room</h1>
+            <p class="subtext">You can sign in with an account or continue as a guest.</p>
+
+            <div id="joinStatus" class="subtext"></div>
+
+            <div class="room-actions">
+                <a id="joinLoginLink" class="button secondary" href="#">Log in with account</a>
+            </div>
+
+            <div id="guestPanel" class="invite-section">
+                <h2>Guest profile</h2>
+                <p class="subtext">Enter a nickname, then join as guest.</p>
+                <div class="room-form">
+                    <input id="guestNicknameInput" name="nickname" type="text" placeholder="Nickname (3-64 chars)" autocomplete="nickname" autocapitalize="none" autocorrect="off" spellcheck="false" required />
+                </div>
+                <p id="guestPanelMessage" class="subtext"></p>
+
+                <div class="room-actions">
+                    <button id="guestEnterRoomButton" class="button" type="button">Enter room as guest</button>
+                </div>
+                <button id="openRegisterButton" class="link-button" type="button">Create a permanent account</button>
+            </div>
+
+            <div id="registerPanel" class="invite-section hidden">
+                <h2>Create account</h2>
+                <p class="subtext">This creates a regular USER account.</p>
+                <form id="registerForm" class="room-form">
+                    <input name="username" type="text" placeholder="Username" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required />
+                    <input name="email" type="email" placeholder="Email (optional)" autocomplete="email" />
+                    <input name="password" type="password" placeholder="Password" autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" required />
+                    <button class="button" type="submit">Create account</button>
+                </form>
+                <p id="registerMessage" class="subtext"></p>
+            </div>
+        </section>
+    </div>
+
+    <script src="assets/js/join.js?v=20261010-2"></script>
+</body>
+
+</html>
+

@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Super Admin Profile</title>
     <base href="/kara-cafe/" />
     <link rel="stylesheet" href="assets/css/styles.css" />
@@ -11,8 +12,11 @@
 <body class="room">
     <div class="room-page">
         <nav class="room-nav">
-            <a class="link" href="karaoke-room/rooms.html">Back to lobby</a>
-            <button id="logoutButton" class="link-button logout-button" type="button">Log out</button>
+            <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="roomNavLinks">Menu</button>
+            <div id="roomNavLinks" class="room-nav-links">
+                <a class="link" href="karaoke-room/rooms.html">Back to lobby</a>
+                <button id="logoutButton" class="link-button logout-button" type="button">Log out</button>
+            </div>
         </nav>
 
         <section class="room-card">
@@ -26,7 +30,7 @@
             </div>
 
             <form id="usernameForm" class="room-form">
-                <input id="usernameInput" name="username" type="text" placeholder="New username" autocomplete="username"
+                <input id="usernameInput" name="username" type="text" placeholder="New username" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false"
                     required />
                 <button class="button" type="submit">Update my username</button>
             </form>
@@ -40,16 +44,17 @@
             <p id="emailMessage" class="subtext"></p>
 
             <form id="passwordForm" class="room-form">
-                <input name="password" type="password" placeholder="New password" autocomplete="new-password"
+                <input name="password" type="password" placeholder="New password" autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false"
                     required />
                 <input name="confirmPassword" type="password" placeholder="Confirm new password"
-                    autocomplete="new-password" required />
+                    autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" required />
                 <button class="button" type="submit">Update my password</button>
             </form>
             <p id="profileMessage" class="subtext"></p>
         </section>
     </div>
 
+    <script src="assets/js/mobile-nav.js"></script>
     <script src="assets/js/super-admin-profile.js"></script>
 </body>
 
